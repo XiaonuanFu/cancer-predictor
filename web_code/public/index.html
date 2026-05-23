@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cancer Data Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="#cancer" aria-label="Cancer Data Console home">
+          <span class="brand-mark"></span>
+          <span>
+            <strong>OncoChem Console</strong>
+            <small>PostgreSQL connected data lab</small>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a class="nav-link active" href="#cancer" data-view="cancer">Cancer Data</a>
+          <a class="nav-link" href="#chemical" data-view="chemical">Chemical Data</a>
+          <a class="nav-link" href="#analysis" data-view="analysis">Data Analysis</a>
+        </nav>
+        <div class="db-pill" id="db-pill">
+          <span class="pulse pending"></span>
+          <span>Checking PostgreSQL</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Local research data interface</p>
+            <h1>Structured cancer and chemical intelligence, wired straight into Postgres.</h1>
+            <p>
+              Browse database tables, inspect schema readiness, and keep analysis status visible from the Jupyter-hosted Node service.
+            </p>
+          </div>
+          <div class="hero-panel">
+            <div class="panel-grid">
+              <div>
+                <span class="metric-label">Tables</span>
+                <strong id="metric-tables">...</strong>
+              </div>
+              <div>
+                <span class="metric-label">Rows</span>
+                <strong id="metric-rows">...</strong>
+              </div>
+              <div>
+                <span class="metric-label">Latency</span>
+                <strong id="metric-latency">...</strong>
+              </div>
+              <div>
+                <span class="metric-label">Database</span>
+                <strong id="metric-db">...</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="workspace">
+          <aside class="rail">
+            <button class="rail-button active" type="button" data-view="cancer">
+              <span>Cancer</span>
+              <strong id="rail-cancer">0</strong>
+            </button>
+            <button class="rail-button" type="button" data-view="chemical">
+              <span>Chemical</span>
+              <strong id="rail-chemical">0</strong>
+            </button>
+            <button class="rail-button" type="button" data-view="analysis">
+              <span>Analysis</span>
+              <strong id="rail-analysis">0</strong>
+            </button>
+          </aside>
+
+          <section class="data-card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow" id="view-kicker">Cancer Data</p>
+                <h2 id="view-title">Cancer cohort tables</h2>
+              </div>
+              <button class="refresh-button" id="refresh-button" type="button">Refresh</button>
+            </div>
+
+            <div id="status-message" class="status-message">Loading database metadata...</div>
+            <div id="table-grid" class="table-grid" aria-live="polite"></div>
+            <div id="analysis-view" class="analysis-view" hidden></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

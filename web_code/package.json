@@ -1,0 +1,14 @@
+{
+  "name": "cancer-data-node-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node dashboard for cancer, chemical, and analysis data backed by local PostgreSQL.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.13.1"
+  }
+}

@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: bio-postgres:18
+    container_name: bio-postgres
+    environment:
+      POSTGRES_USER: bio
+      POSTGRES_PASSWORD: bioanalysis
+      POSTGRES_DB: bio
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker_storage/pg:/var/lib/postgresql
+    restart: unless-stopped
+
+  jupyter:
+    image: bio:latest
+    build:
+      context: ./environment
+      dockerfile: Dockerfile
+      args:
+        BASE_IMAGE: bio:latest
+    container_name: bio-jupyter
+    environment:
+      JUPYTER_TOKEN: bioanalysis
+      NODE_APP_DIR: /workspace/node-app
+      NODE_PORT: 3000
+      NODE_START_COMMAND: npm start
+    ports:
+      - "8888:8888"
+      - "3000:3000"
+    volumes:
+      - ./docker_storage/jupyter:/workspace
+    working_dir: /workspace
+    restart: unless-stopped
