@@ -10,6 +10,7 @@ This directory holds planning and project reference documents for the cancer inf
 - `web-design/`: Web application structure, UI design notes, API contracts, and implementation notes for `web_code/`.
 - `environment/`: Docker, runtime, service, database, and local connection information.
 - `data-sources/`: local data inventory, source provenance, database import mapping, and data quality notes.
+- `prompts/`: daily prompt logs for recording and refining prompts used during project work.
 
 ## Current Project Snapshot
 

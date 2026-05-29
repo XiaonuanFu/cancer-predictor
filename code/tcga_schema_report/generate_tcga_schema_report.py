@@ -255,6 +255,29 @@ def render_report(data, echarts_src: str) -> str:
             "use": "避免 PostgreSQL 单表上万列限制；分析某个样本时按 sample_index 取值。",
         },
     ]
+    glossary_rows = [
+        {"term": "TCGA", "plain": "The Cancer Genome Atlas, a big public cancer data project.", "cn": "癌症基因组图谱项目，很多癌症数据来自这里。"},
+        {"term": "Schema", "plain": "A named folder inside a database that groups related tables.", "cn": "数据库里的一个分组，bio_tcga 就是一组 TCGA 表。"},
+        {"term": "Table", "plain": "A spreadsheet-like object in a database: rows are records, columns are fields.", "cn": "像 Excel 表；一行是一条记录，一列是一个字段。"},
+        {"term": "Field / Column", "plain": "One kind of information stored for every record, like age or cancer type.", "cn": "字段/列，比如年龄、癌种、样本 ID。"},
+        {"term": "Record / Row", "plain": "One entry in a table, like one patient or one mutation.", "cn": "表里的一行，比如一个病人或一个突变事件。"},
+        {"term": "Cohort", "plain": "A group of patients or samples chosen for the same study question.", "cn": "一个研究队列，比如乳腺癌病人组。"},
+        {"term": "Barcode", "plain": "A TCGA ID string that labels a patient, tumor sample, or normal sample.", "cn": "TCGA 条形码，用来追踪病人和样本。"},
+        {"term": "Clinical endpoint", "plain": "A health outcome used in analysis, such as survival or recurrence.", "cn": "临床结局，比如是否生存、是否复发。"},
+        {"term": "OS", "plain": "Overall Survival: whether and when a patient died after diagnosis or treatment.", "cn": "总体生存，常和 OS time 一起看。"},
+        {"term": "DSS", "plain": "Disease-Specific Survival: death counted only if it is related to the cancer.", "cn": "疾病特异生存，只关注因这个癌症导致的死亡。"},
+        {"term": "DFI", "plain": "Disease-Free Interval: time before cancer comes back after being disease-free.", "cn": "无病间隔，癌症消失后多久复发。"},
+        {"term": "PFI", "plain": "Progression-Free Interval: time before the cancer gets worse or returns.", "cn": "无进展间隔，癌症多久没有变糟。"},
+        {"term": "RNA-seq", "plain": "A sequencing method that measures which genes are turned on and how strongly.", "cn": "测 RNA，用来看基因表达量。"},
+        {"term": "miRNA", "plain": "Small RNA molecules that help control gene expression.", "cn": "微小 RNA，能调控基因表达。"},
+        {"term": "Methylation", "plain": "Chemical tags on DNA that can change how active a gene is.", "cn": "DNA 甲基化，会影响基因是否容易被表达。"},
+        {"term": "RPPA", "plain": "A lab method that measures protein levels in many samples.", "cn": "蛋白检测平台，用来看蛋白量。"},
+        {"term": "CNV / Copy number", "plain": "When parts of the genome are copied extra times or deleted in cancer cells.", "cn": "拷贝数改变，癌细胞里某段 DNA 变多或变少。"},
+        {"term": "MAF", "plain": "Mutation Annotation Format, a table format for DNA mutation records.", "cn": "突变注释表格式，一行通常是一个突变。"},
+        {"term": "Feature", "plain": "The measured thing in a matrix, such as a gene or methylation probe.", "cn": "矩阵里被测量的对象，比如基因或甲基化探针。"},
+        {"term": "sample_index", "plain": "A number telling which sample position matches a value in a long vector.", "cn": "样本位置编号，用来对齐 values_text 里的数值。"},
+        {"term": "UNLOGGED table", "plain": "A faster PostgreSQL table that writes less recovery log; okay for reloadable local data.", "cn": "Postgres 快速表，适合本地可重导的大矩阵。"},
+    ]
 
     type_notes = (
         "本报告选择 `tcga_cdr_tcga_cdr.type` 做字段分析，因为它是最直观的 TCGA 癌种分组字段。"
@@ -308,6 +331,8 @@ def render_report(data, echarts_src: str) -> str:
     .note { border-left:4px solid var(--accent2); background:#f2fbfa; padding:12px 14px; margin:14px 0; }
     .charts { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .chart { min-height:390px; border:1px solid var(--line); border-radius:8px; background:#fff; padding:8px; }
+    .back-link { display:inline-block; margin-bottom:14px; color:var(--accent); font-weight:700; text-decoration:none; }
+    .back-link:hover { text-decoration:underline; }
     table { width:100%; border-collapse:collapse; font-size:13px; }
     th, td { border-bottom:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:top; }
     th { background:var(--panel); color:#314253; font-weight:650; }
@@ -331,6 +356,7 @@ def render_report(data, echarts_src: str) -> str:
     <div class="meta">生成时间：{esc(data["generated_at"])} · 数据库：PostgreSQL 容器 bio-postgres · schema：bio_tcga</div>
   </header>
   <main>
+    <a class="back-link" href="/#analysis">← 回到报告清单</a>
     <section>
       <h2>1. Schema 总览</h2>
       <p>{esc(bio_note)}</p>
@@ -372,7 +398,13 @@ def render_report(data, echarts_src: str) -> str:
     </section>
 
     <section>
-      <h2>5. 表清单</h2>
+      <h2>5. 缩写和专业词汇解释</h2>
+      <p>下面这些词用更接近课堂语言的方式解释。先抓住“它在问什么”，再回头看图表会容易很多。</p>
+      {render_table(glossary_rows, ["Term / abbreviation", "Plain English explanation", "中文理解"], ["term", "plain", "cn"])}
+    </section>
+
+    <section>
+      <h2>6. 表清单</h2>
       {render_table(table_rows, ["表", "类别", "行数", "字段数", "体积", "导入模式", "持久化"], ["table_name", "category", "rows", "columns", "size", "mode", "persistence"])}
     </section>
 
@@ -434,7 +466,7 @@ def render_report_list(report_href: str, data) -> str:
     main { max-width:920px; margin:0 auto; padding:36px 24px; }
     h1 { font-size:28px; margin:0 0 8px; }
     .meta { color:#607080; margin-bottom:22px; }
-    a.card { display:block; text-decoration:none; color:inherit; border:1px solid #d8e0e8; border-radius:8px; padding:18px; background:#f9fbfd; }
+    a.card { display:block; text-decoration:none; color:inherit; border:1px solid #d8e0e8; border-radius:8px; padding:18px; background:#f9fbfd; margin-bottom:12px; }
     a.card:hover { border-color:#1769aa; }
     .title { font-size:18px; font-weight:700; margin-bottom:8px; }
     .desc { color:#384858; line-height:1.55; }
@@ -444,10 +476,18 @@ def render_report_list(report_href: str, data) -> str:
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Analysis 报告清单</title><style>{css}</style></head>
 <body><main>
   <h1>Data Analysis 报告清单</h1>
-  <div class="meta">当前共有 1 份报告 · 最近更新：{esc(data["generated_at"])}</div>
+  <div class="meta">当前共有 3 份报告 · 最近更新：{esc(data["generated_at"])}</div>
   <a class="card" href="{esc(report_href)}">
     <div class="title">1. {REPORT_TITLE}</div>
     <div class="desc">本地 PostgreSQL 容器中 bio_tcga schema 的初级概览，包括表规模、数据类型、TCGA 临床字段 type 的解释和癌种分布图。</div>
+  </a>
+  <a class="card" href="reports/tcga_mc3_sequencing_deep_dive.html">
+    <div class="title">2. TCGA MC3 癌症测序突变表深入分析</div>
+    <div class="desc">深入分析 MC3 MAF 癌症测序突变表，覆盖变异类型、癌种、基因、染色体、VAF、caller 支持度，并解释全部 114 个字段。</div>
+  </a>
+  <a class="card" href="reports/tcga_coad_integrated_analysis.html">
+    <div class="title">3. TCGA COAD 结肠癌测序与多组学联合分析</div>
+    <div class="desc">聚焦 COAD 结肠癌，把临床、MC3 测序突变、多组学样本覆盖、样本质量注释和术语解释整合到一份报告。</div>
   </a>
 </main></body></html>
 """
