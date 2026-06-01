@@ -1,0 +1,9 @@
+/data/
+/models/
+/reports/*.csv
+/reports/*.png
+/reports/*.md
+!/reports/README.md
+__pycache__/
+*.pyc
+
