@@ -13,7 +13,7 @@ REPORT_DIR = PUBLIC_DIR / "data-analysis"
 REPORTS_DIR = REPORT_DIR / "reports"
 ASSETS_DIR = REPORT_DIR / "assets"
 REPORT_FILENAME = "tcga_coad_integrated_analysis.html"
-REPORT_TITLE = "TCGA COAD 结肠癌测序与多组学联合分析"
+REPORT_TITLE = "TCGA COAD Sequencing And Multi-Omics Integrated Analysis"
 ECHARTS_URL = "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"
 
 
@@ -379,32 +379,32 @@ def build_data():
 
 
 GLOSSARY = [
-    {"term": "COAD", "plain": "Colon Adenocarcinoma, a common type of colon cancer.", "cn": "结肠腺癌，TCGA 里的结肠癌项目简称。"},
-    {"term": "Adenocarcinoma", "plain": "Cancer that starts in gland-like cells that make mucus or fluids.", "cn": "腺癌，来自分泌黏液/液体的腺样细胞。"},
-    {"term": "TCGA", "plain": "The Cancer Genome Atlas, a public cancer data project.", "cn": "癌症基因组图谱项目。"},
-    {"term": "MC3", "plain": "A TCGA mutation dataset that combines calls from several mutation-finding tools.", "cn": "多 caller 整合的 TCGA 突变数据。"},
-    {"term": "MAF", "plain": "Mutation Annotation Format; a mutation table where one row is usually one DNA change.", "cn": "突变注释表，一行通常是一条 DNA 改变。"},
-    {"term": "Somatic mutation", "plain": "A DNA change that appears in tumor cells after birth, not inherited from parents.", "cn": "体细胞突变，肿瘤里后天出现。"},
-    {"term": "Matched normal", "plain": "Normal tissue or blood from the same person, used for comparison.", "cn": "同一病人的正常样本。"},
-    {"term": "Variant", "plain": "A DNA difference compared with the reference genome.", "cn": "和参考基因组不一样的 DNA 位置。"},
-    {"term": "SNP / SNV", "plain": "A one-letter DNA change, like C changing to T.", "cn": "单碱基变化。"},
-    {"term": "INS / DEL", "plain": "Insertion means extra DNA letters; deletion means missing DNA letters.", "cn": "插入/缺失。"},
-    {"term": "Missense", "plain": "A DNA change that swaps one amino acid in a protein.", "cn": "错义突变，蛋白里的一个氨基酸换了。"},
-    {"term": "Nonsense", "plain": "A DNA change that creates an early stop signal in a protein.", "cn": "无义突变，让蛋白提前停止。"},
-    {"term": "Frameshift", "plain": "An insertion/deletion that changes how DNA is read in groups of three.", "cn": "移码，三联密码子的阅读框乱了。"},
-    {"term": "Tumor mutation burden", "plain": "How many mutations a tumor sample has.", "cn": "肿瘤突变负荷，一个样本突变多不多。"},
-    {"term": "VAF", "plain": "Variant Allele Fraction: the fraction of sequencing reads that show the mutation.", "cn": "突变 reads 占总 reads 的比例。"},
-    {"term": "Depth", "plain": "How many sequencing reads cover a DNA position.", "cn": "测序深度。"},
-    {"term": "Alt count", "plain": "How many reads support the mutated version.", "cn": "支持突变的 reads 数。"},
-    {"term": "Caller", "plain": "Software that decides whether a DNA change is a real mutation.", "cn": "突变检测软件。"},
-    {"term": "ncallers", "plain": "How many callers agreed on the same mutation.", "cn": "几个 caller 同意这个突变。"},
-    {"term": "AJCC stage", "plain": "A cancer staging system; later stages usually mean cancer has spread more.", "cn": "癌症分期系统。"},
-    {"term": "OS", "plain": "Overall Survival: whether and when the patient died.", "cn": "总体生存。"},
-    {"term": "RNA-seq", "plain": "Sequencing RNA to measure gene activity.", "cn": "测基因表达。"},
-    {"term": "Methylation", "plain": "Chemical tags on DNA that can affect gene activity.", "cn": "DNA 甲基化。"},
-    {"term": "miRNA", "plain": "Small RNAs that help regulate genes.", "cn": "微小 RNA。"},
-    {"term": "RPPA", "plain": "A method that measures protein levels across many samples.", "cn": "蛋白水平检测。"},
-    {"term": "Adaptyv Bio", "plain": "A protein expression and binding assay service; useful later if you want to test mutation-derived protein ideas.", "cn": "蛋白表达/结合实验平台，可做后续验证。"},
+    {"term": "COAD", "plain": "Colon Adenocarcinoma, a common type of colon cancer."},
+    {"term": "Adenocarcinoma", "plain": "Cancer that starts in gland-like cells that make mucus or fluids."},
+    {"term": "TCGA", "plain": "The Cancer Genome Atlas, a public cancer data project."},
+    {"term": "MC3", "plain": "A TCGA mutation dataset that combines calls from several mutation-finding tools."},
+    {"term": "MAF", "plain": "Mutation Annotation Format; a mutation table where one row is usually one DNA change."},
+    {"term": "Somatic mutation", "plain": "A DNA change that appears in tumor cells after birth, not inherited from parents."},
+    {"term": "Matched normal", "plain": "Normal tissue or blood from the same person, used for comparison."},
+    {"term": "Variant", "plain": "A DNA difference compared with the reference genome."},
+    {"term": "SNP / SNV", "plain": "A one-letter DNA change, like C changing to T."},
+    {"term": "INS / DEL", "plain": "Insertion means extra DNA letters; deletion means missing DNA letters."},
+    {"term": "Missense", "plain": "A DNA change that swaps one amino acid in a protein."},
+    {"term": "Nonsense", "plain": "A DNA change that creates an early stop signal in a protein."},
+    {"term": "Frameshift", "plain": "An insertion/deletion that changes how DNA is read in groups of three."},
+    {"term": "Tumor mutation burden", "plain": "How many mutations a tumor sample has."},
+    {"term": "VAF", "plain": "Variant Allele Fraction: the fraction of sequencing reads that show the mutation."},
+    {"term": "Depth", "plain": "How many sequencing reads cover a DNA position."},
+    {"term": "Alt count", "plain": "How many reads support the mutated version."},
+    {"term": "Caller", "plain": "Software that decides whether a DNA change is a real mutation."},
+    {"term": "ncallers", "plain": "How many callers agreed on the same mutation."},
+    {"term": "AJCC stage", "plain": "A cancer staging system; later stages usually mean cancer has spread more."},
+    {"term": "OS", "plain": "Overall Survival: whether and when the patient died."},
+    {"term": "RNA-seq", "plain": "Sequencing RNA to measure gene activity."},
+    {"term": "Methylation", "plain": "Chemical tags on DNA that can affect gene activity."},
+    {"term": "miRNA", "plain": "Small RNAs that help regulate genes."},
+    {"term": "RPPA", "plain": "A method that measures protein levels across many samples."},
+    {"term": "Adaptyv Bio", "plain": "A protein expression and binding assay service; useful later if you want to test mutation-derived protein ideas."},
 ]
 
 
@@ -449,7 +449,7 @@ def render_report(data, echarts_src: str) -> str:
     @media (max-width: 920px) { header, main { padding-left:18px; padding-right:18px; } .cards, .chart-grid { grid-template-columns:1fr; } .wide { grid-column:auto; } }
     """
     return f"""<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -460,25 +460,25 @@ def render_report(data, echarts_src: str) -> str:
 <body>
   <header>
     <h1>{REPORT_TITLE}</h1>
-    <div class="meta">生成时间：{esc(data["generated_at"])} · 癌种：COAD / Colon Adenocarcinoma · 数据来源：bio_tcga schema</div>
+    <div class="meta">Generated at: {esc(data["generated_at"])} · Cancer type: COAD / Colon Adenocarcinoma · Data source: bio_tcga schema</div>
   </header>
   <main>
-    <a class="back-link" href="/#analysis">← 回到报告清单</a>
+    <a class="back-link" href="/#analysis">← Back to report list</a>
     <section>
-      <h2>1. 这份报告在看什么</h2>
-      <p>COAD 是 TCGA 里的结肠腺癌队列。这里把 <code>tcga_cdr_tcga_cdr</code> 的 COAD 临床信息、<code>mc3_public_maf</code> 的癌症测序突变、以及 RNA-seq、miRNA、甲基化、RPPA、样本质量注释等表连起来，做一份面向理解数据结构和初步生物学信号的报告。</p>
+      <h2>1. What This Report Covers</h2>
+      <p>COAD is the colon adenocarcinoma cohort in TCGA. This report links COAD clinical information from <code>tcga_cdr_tcga_cdr</code>, cancer sequencing mutations from <code>mc3_public_maf</code>, and RNA-seq, miRNA, methylation, RPPA, and sample-quality annotation tables to support data-structure understanding and early biological signal review.</p>
       <div class="cards">
-        <div class="card"><span>COAD 临床患者</span><strong>{fmt_int(summary["clinical_patients"])}</strong></div>
-        <div class="card"><span>MC3 突变记录</span><strong>{fmt_int(summary["mutation_records"])}</strong></div>
-        <div class="card"><span>肿瘤样本</span><strong>{fmt_int(summary["tumor_samples"])}</strong></div>
-        <div class="card"><span>有突变记录患者</span><strong>{fmt_int(summary["mutated_patients"])}</strong></div>
-        <div class="card"><span>突变涉及基因</span><strong>{fmt_int(summary["mutated_genes"])}</strong></div>
+        <div class="card"><span>COAD Clinical Patients</span><strong>{fmt_int(summary["clinical_patients"])}</strong></div>
+        <div class="card"><span>MC3 Mutation Records</span><strong>{fmt_int(summary["mutation_records"])}</strong></div>
+        <div class="card"><span>Tumor Samples</span><strong>{fmt_int(summary["tumor_samples"])}</strong></div>
+        <div class="card"><span>Patients With Mutations</span><strong>{fmt_int(summary["mutated_patients"])}</strong></div>
+        <div class="card"><span>Mutated Genes</span><strong>{fmt_int(summary["mutated_genes"])}</strong></div>
       </div>
-      <div class="note">通俗理解：这份报告不是在下临床结论，而是在回答“COAD 这批结肠癌数据里，哪些临床信息、突变信息和其他组学数据可以一起看”。</div>
+      <div class="note">Plain-language reading: this report does not make clinical conclusions. It answers which clinical, mutation, and other omics data can be reviewed together in the local COAD dataset.</div>
     </section>
 
     <section>
-      <h2>2. 临床和多组学覆盖</h2>
+      <h2>2. Clinical And Multi-Omics Coverage</h2>
       <div class="chart-grid">
         <div id="genderChart" class="chart"></div>
         <div id="vitalChart" class="chart"></div>
@@ -489,8 +489,8 @@ def render_report(data, echarts_src: str) -> str:
     </section>
 
     <section>
-      <h2>3. COAD 测序突变图谱</h2>
-      <p>COAD 的突变表来自 MC3 MAF。一个突变记录可以理解为“某个肿瘤样本在某个 DNA 位置发生了变化，并被注释到某个基因或功能区域”。</p>
+      <h2>3. COAD Sequencing Mutation Landscape</h2>
+      <p>The COAD mutation table comes from MC3 MAF. A mutation record means that a tumor sample has a DNA change at a genomic position and that the change has been annotated to a gene or functional region.</p>
       <div class="chart-grid">
         <div id="variantClassChart" class="chart"></div>
         <div id="variantTypeChart" class="chart"></div>
@@ -500,40 +500,40 @@ def render_report(data, echarts_src: str) -> str:
         <div id="vafChart" class="chart"></div>
         <div id="stageGeneHeatmap" class="chart wide"></div>
       </div>
-      <div class="note">COAD 常见驱动通路会涉及 APC、TP53、KRAS、PIK3CA、SMAD4 等基因。本报告展示的是本地库中的计数分布，不等于正式驱动基因判定。</div>
+      <div class="note">Common COAD driver pathways often involve APC, TP53, KRAS, PIK3CA, and SMAD4. This report shows count distributions in the local database; it is not a formal driver-gene call.</div>
     </section>
 
     <section>
-      <h2>4. 突变负荷概览</h2>
-      <p>在本地数据中，COAD 每个肿瘤样本平均约 <strong>{esc(burden.get("avg_mutations"))}</strong> 条突变记录，中位数约 <strong>{esc(burden.get("median_mutations"))}</strong>，范围从 <strong>{esc(burden.get("min_mutations"))}</strong> 到 <strong>{esc(burden.get("max_mutations"))}</strong>。如果某些样本突变数特别高，后续可以继续查 MSI、POLE、样本质量或测序覆盖情况。</p>
+      <h2>4. Mutation Burden Overview</h2>
+      <p>In the local data, each COAD tumor sample has an average of about <strong>{esc(burden.get("avg_mutations"))}</strong> mutation records, with a median of about <strong>{esc(burden.get("median_mutations"))}</strong> and a range from <strong>{esc(burden.get("min_mutations"))}</strong> to <strong>{esc(burden.get("max_mutations"))}</strong>. Samples with especially high mutation counts can be checked later for MSI, POLE, sample quality, or sequencing coverage.</p>
     </section>
 
     <section>
-      <h2>5. Top 突变基因</h2>
-      {render_table(top_gene_rows, ["基因", "涉及患者数", "突变记录数"], ["label", "patients", "variants"])}
+      <h2>5. Top Mutated Genes</h2>
+      {render_table(top_gene_rows, ["Gene", "Patients", "Mutation Records"], ["label", "patients", "variants"])}
     </section>
 
     <section>
-      <h2>6. 代表性 COAD 突变记录</h2>
-      {render_table(representative, ["基因", "功能分类", "类型", "染色体", "起点", "样本", "分期", "生存状态", "蛋白变化", "肿瘤深度", "alt reads", "callers"], ["hugo_symbol", "variant_classification", "variant_type", "chromosome", "start_position", "tumor_sample_barcode", "ajcc_pathologic_tumor_stage", "vital_status", "hgvsp_short", "t_depth", "t_alt_count", "ncallers"])}
+      <h2>6. Representative COAD Mutation Records</h2>
+      {render_table(representative, ["Gene", "Functional Class", "Type", "Chromosome", "Start", "Sample", "Stage", "Vital Status", "Protein Change", "Tumor Depth", "Alt Reads", "Callers"], ["hugo_symbol", "variant_classification", "variant_type", "chromosome", "start_position", "tumor_sample_barcode", "ajcc_pathologic_tumor_stage", "vital_status", "hgvsp_short", "t_depth", "t_alt_count", "ncallers"])}
     </section>
 
     <section>
-      <h2>7. 样本质量注释样例</h2>
-      <p>样本质量注释表可以帮助判断某些 aliquot 是否有病理、平台或排除原因。正式分析时，应该优先过滤 <code>do_not_use</code> 或有明确排除原因的样本。</p>
-      {render_table(quality_rows, ["患者", "aliquot", "平台", "患者注释", "do_not_use"], ["patient_barcode", "aliquot_barcode", "platform", "patient_annotation", "do_not_use"])}
+      <h2>7. Sample Quality Annotation Examples</h2>
+      <p>The sample-quality annotation table helps identify aliquots with pathology, platform, or exclusion notes. Formal analysis should prioritize filtering samples marked <code>do_not_use</code> or samples with clear exclusion reasons.</p>
+      {render_table(quality_rows, ["Patient", "Aliquot", "Platform", "Patient Annotation", "do_not_use"], ["patient_barcode", "aliquot_barcode", "platform", "patient_annotation", "do_not_use"])}
     </section>
 
     <section>
-      <h2>8. 缩写和专业词汇解释</h2>
-      {render_table(GLOSSARY, ["Term / abbreviation", "Plain English explanation", "中文理解"], ["term", "plain", "cn"])}
+      <h2>8. Abbreviations And Terms</h2>
+      {render_table(GLOSSARY, ["Term / abbreviation", "Plain English explanation"], ["term", "plain"])}
     </section>
 
     <section>
-      <h2>9. 后续可以怎么做</h2>
-      <p>如果要深入 COAD，可以继续做：高突变负荷样本定位、APC/TP53/KRAS/PIK3CA/SMAD4 的患者级共突变关系、突变与 OS/分期的关联、RNA-seq 表达矩阵中这些基因的表达差异，以及甲基化或 RPPA 蛋白层面的交叉验证。若把突变转成候选蛋白变体或抗原肽，Adaptyv Bio 这类平台可以作为后续表达和结合实验验证工具；本报告没有调用外部实验 API。</p>
+      <h2>9. Next Analysis Ideas</h2>
+      <p>Further COAD analysis could include high-mutation-burden sample review, patient-level co-mutation relationships among APC/TP53/KRAS/PIK3CA/SMAD4, mutation associations with OS or stage, expression differences for these genes in RNA-seq matrices, and methylation or RPPA cross-validation. If mutations are translated into candidate protein variants or antigen peptides, platforms such as Adaptyv Bio could support later expression and binding validation; this report does not call external experimental APIs.</p>
     </section>
-    <p class="footer">说明：这是一份本地数据探索报告，适合理解 COAD 数据结构和初步信号，不替代正式统计建模或临床解释。</p>
+    <p class="footer">Note: this is a local data exploration report for understanding COAD data structure and early signals. It does not replace formal statistical modeling or clinical interpretation.</p>
   </main>
   <script>
     const gender = {js(data["clinical_gender"])};
@@ -577,21 +577,21 @@ def render_report(data, echarts_src: str) -> str:
       return chart;
     }}
     const charts = [
-      pie('genderChart', 'COAD 性别分布', gender),
-      pie('vitalChart', 'COAD vital_status 分布', vital),
-      bar('stageChart', 'AJCC 病理分期分布', stage, 'value', '#7b4ea3'),
-      bar('ageChart', '诊断年龄分箱', ageBins, 'value', '#218380'),
-      bar('omicsChart', 'COAD 相关数据覆盖', omics, 'value', '#1769aa'),
+      pie('genderChart', 'COAD Gender Distribution', gender),
+      pie('vitalChart', 'COAD vital_status Distribution', vital),
+      bar('stageChart', 'AJCC Pathologic Stage Distribution', stage, 'value', '#7b4ea3'),
+      bar('ageChart', 'Age At Diagnosis Bins', ageBins, 'value', '#218380'),
+      bar('omicsChart', 'COAD Data Coverage', omics, 'value', '#1769aa'),
       bar('variantClassChart', 'COAD Variant Classification', variantClass, 'value', '#c8553d'),
       pie('variantTypeChart', 'COAD Variant Type', variantType),
       bar('topGenesChart', 'COAD Top mutated genes by patients', topGenes, 'patients', '#ad7a1f'),
-      bar('chromosomeChart', 'COAD 染色体突变记录数', chromosome, 'value', '#5166a6'),
-      bar('burdenChart', '每样本突变记录数分箱', burdenBins, 'value', '#2f7f91'),
-      bar('vafChart', 'COAD 肿瘤 VAF 分箱', vafBins, 'value', '#2f7f91')
+      bar('chromosomeChart', 'COAD Chromosome Mutation Records', chromosome, 'value', '#5166a6'),
+      bar('burdenChart', 'Mutation Records Per Sample Bins', burdenBins, 'value', '#2f7f91'),
+      bar('vafChart', 'COAD Tumor VAF Bins', vafBins, 'value', '#2f7f91')
     ];
     const heat = echarts.init(document.getElementById('stageGeneHeatmap'));
     heat.setOption({{
-      title: {{ text: 'COAD 分期 x Top 基因患者数热图', left: 8, top: 8, textStyle: {{ fontSize: 15 }} }},
+      title: {{ text: 'COAD Stage x Top Gene Patient Count Heatmap', left: 8, top: 8, textStyle: {{ fontSize: 15 }} }},
       tooltip: {{ position: 'top', formatter: p => `${{heatY[p.value[1]]}} / ${{heatX[p.value[0]]}}: ${{p.value[2]}} patients` }},
       grid: {{ left: 130, right: 40, top: 64, bottom: 88 }},
       xAxis: {{ type: 'category', data: heatX, axisLabel: {{ rotate: 45 }} }},
@@ -618,22 +618,22 @@ def render_report_list(data) -> str:
     .desc { color:#384858; line-height:1.55; }
     """
     return f"""<!doctype html>
-<html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Analysis 报告清单</title><style>{css}</style></head>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Analysis Report List</title><style>{css}</style></head>
 <body><main>
-  <h1>Data Analysis 报告清单</h1>
-  <div class="meta">当前共有 3 份报告 · 最近更新：{esc(data["generated_at"])}</div>
+  <h1>Data Analysis Report List</h1>
+  <div class="meta">3 reports available · Last updated: {esc(data["generated_at"])}</div>
   <a class="card" href="reports/tcga_schema_basic_analysis.html">
-    <div class="title">1. TCGA Schema 初级分析报告</div>
-    <div class="desc">本地 PostgreSQL 容器中 bio_tcga schema 的初级概览，包括表规模、数据类型、TCGA 临床字段 type 的解释和癌种分布图。</div>
+    <div class="title">1. TCGA Schema Basic Analysis Report</div>
+    <div class="desc">An entry-level overview of the bio_tcga schema in the local PostgreSQL container, including table scale, data types, the TCGA clinical type field, and cancer-type distributions.</div>
   </a>
   <a class="card" href="reports/tcga_mc3_sequencing_deep_dive.html">
-    <div class="title">2. TCGA MC3 癌症测序突变表深入分析</div>
-    <div class="desc">深入分析 MC3 MAF 癌症测序突变表，覆盖变异类型、癌种、基因、染色体、VAF、caller 支持度，并解释全部 114 个字段。</div>
+    <div class="title">2. TCGA MC3 Cancer Sequencing Mutation Table Deep Dive</div>
+    <div class="desc">A deeper analysis of the MC3 MAF cancer sequencing mutation table, covering variant types, cancer types, genes, chromosomes, VAF, caller support, and all 114 fields.</div>
   </a>
   <a class="card" href="reports/{REPORT_FILENAME}">
     <div class="title">3. {REPORT_TITLE}</div>
-    <div class="desc">聚焦 COAD 结肠癌，把临床、MC3 测序突变、多组学样本覆盖、样本质量注释和术语解释整合到一份报告。</div>
+    <div class="desc">A COAD-focused report integrating clinical data, MC3 sequencing mutations, multi-omics sample coverage, sample-quality annotations, and term explanations.</div>
   </a>
 </main></body></html>"""
 

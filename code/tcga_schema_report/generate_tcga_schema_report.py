@@ -15,7 +15,7 @@ REPORT_DIR = PUBLIC_DIR / "data-analysis"
 REPORTS_DIR = REPORT_DIR / "reports"
 ASSETS_DIR = REPORT_DIR / "assets"
 REPORT_FILENAME = "tcga_schema_basic_analysis.html"
-REPORT_TITLE = "TCGA Schema 初级分析报告"
+REPORT_TITLE = "TCGA Schema Basic Analysis Report"
 ECHARTS_URL = "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"
 
 
@@ -60,20 +60,20 @@ def ensure_echarts_asset() -> str:
 
 def classify_table(name: str, load_mode: str | None) -> str:
     if name.startswith("matrix_"):
-        return "组学矩阵"
+        return "Omics matrix"
     if name.startswith("tcga_cdr_") or "clinical" in name:
-        return "临床/生存"
+        return "Clinical/survival"
     if "maf" in name:
-        return "突变"
+        return "Mutation"
     if "seg" in name or "abs_" in name or "snp6" in name:
-        return "拷贝数"
+        return "Copy number"
     if "rppa" in name:
-        return "蛋白"
+        return "Protein"
     if "mirna" in name:
         return "miRNA"
     if load_mode == "xlsx_text_columns":
-        return "补充表"
-    return "元数据"
+        return "Supplement table"
+    return "Metadata"
 
 
 def fmt_int(value) -> str:
@@ -231,65 +231,65 @@ def render_report(data, echarts_src: str) -> str:
     clinical_field_rows = [
         {
             "field": "type",
-            "meaning": "TCGA 癌种/项目简称，例如 BRCA 表示 Breast Invasive Carcinoma，LUAD 表示 Lung Adenocarcinoma。",
-            "use": "最适合作为初级分组字段，用来按癌种统计样本数、比较临床结局或连接多组学矩阵样本。",
+            "meaning": "TCGA cancer type or project abbreviation, for example BRCA means Breast Invasive Carcinoma and LUAD means Lung Adenocarcinoma.",
+            "use": "Best used as an entry-level grouping field for counting samples by cancer type, comparing clinical outcomes, or linking multi-omics matrix samples.",
         },
         {
             "field": "bcr_patient_barcode",
-            "meaning": "TCGA 病人条形码，是连接临床、突变、表达、甲基化等表的核心患者级 ID。",
-            "use": "可与样本条形码的前 12 个字符对齐，做跨组学整合。",
+            "meaning": "TCGA patient barcode, the core patient-level ID for linking clinical, mutation, expression, methylation, and other tables.",
+            "use": "Can be aligned with the first 12 characters of sample barcodes for cross-omics integration.",
         },
         {
             "field": "vital_status",
-            "meaning": "随访时患者状态，常见值为 Alive 或 Dead。",
-            "use": "生存分析的基础字段，通常和 os/os_time 联合使用。",
+            "meaning": "Patient status at follow-up, commonly Alive or Dead.",
+            "use": "A basic survival-analysis field, usually used together with os and os_time.",
         },
         {
             "field": "os / os_time",
-            "meaning": "Overall Survival 事件标记和对应时间。",
-            "use": "用于初级总体生存结局分析；正式建模前需要检查缺失和随访口径。",
+            "meaning": "Overall Survival event flag and corresponding time.",
+            "use": "Used for basic overall-survival outcome analysis; missingness and follow-up definitions should be checked before formal modeling.",
         },
         {
             "field": "values_text",
-            "meaning": "超宽组学矩阵的数值向量。每行对应一个 feature，向量位置与同名 *_samples 表的 sample_index 对齐。",
-            "use": "避免 PostgreSQL 单表上万列限制；分析某个样本时按 sample_index 取值。",
+            "meaning": "Value vector for ultra-wide omics matrices. Each row maps to one feature, and vector positions align with sample_index in the matching *_samples table.",
+            "use": "Avoids PostgreSQL table-width limits; retrieve a sample value by using sample_index.",
         },
     ]
     glossary_rows = [
-        {"term": "TCGA", "plain": "The Cancer Genome Atlas, a big public cancer data project.", "cn": "癌症基因组图谱项目，很多癌症数据来自这里。"},
-        {"term": "Schema", "plain": "A named folder inside a database that groups related tables.", "cn": "数据库里的一个分组，bio_tcga 就是一组 TCGA 表。"},
-        {"term": "Table", "plain": "A spreadsheet-like object in a database: rows are records, columns are fields.", "cn": "像 Excel 表；一行是一条记录，一列是一个字段。"},
-        {"term": "Field / Column", "plain": "One kind of information stored for every record, like age or cancer type.", "cn": "字段/列，比如年龄、癌种、样本 ID。"},
-        {"term": "Record / Row", "plain": "One entry in a table, like one patient or one mutation.", "cn": "表里的一行，比如一个病人或一个突变事件。"},
-        {"term": "Cohort", "plain": "A group of patients or samples chosen for the same study question.", "cn": "一个研究队列，比如乳腺癌病人组。"},
-        {"term": "Barcode", "plain": "A TCGA ID string that labels a patient, tumor sample, or normal sample.", "cn": "TCGA 条形码，用来追踪病人和样本。"},
-        {"term": "Clinical endpoint", "plain": "A health outcome used in analysis, such as survival or recurrence.", "cn": "临床结局，比如是否生存、是否复发。"},
-        {"term": "OS", "plain": "Overall Survival: whether and when a patient died after diagnosis or treatment.", "cn": "总体生存，常和 OS time 一起看。"},
-        {"term": "DSS", "plain": "Disease-Specific Survival: death counted only if it is related to the cancer.", "cn": "疾病特异生存，只关注因这个癌症导致的死亡。"},
-        {"term": "DFI", "plain": "Disease-Free Interval: time before cancer comes back after being disease-free.", "cn": "无病间隔，癌症消失后多久复发。"},
-        {"term": "PFI", "plain": "Progression-Free Interval: time before the cancer gets worse or returns.", "cn": "无进展间隔，癌症多久没有变糟。"},
-        {"term": "RNA-seq", "plain": "A sequencing method that measures which genes are turned on and how strongly.", "cn": "测 RNA，用来看基因表达量。"},
-        {"term": "miRNA", "plain": "Small RNA molecules that help control gene expression.", "cn": "微小 RNA，能调控基因表达。"},
-        {"term": "Methylation", "plain": "Chemical tags on DNA that can change how active a gene is.", "cn": "DNA 甲基化，会影响基因是否容易被表达。"},
-        {"term": "RPPA", "plain": "A lab method that measures protein levels in many samples.", "cn": "蛋白检测平台，用来看蛋白量。"},
-        {"term": "CNV / Copy number", "plain": "When parts of the genome are copied extra times or deleted in cancer cells.", "cn": "拷贝数改变，癌细胞里某段 DNA 变多或变少。"},
-        {"term": "MAF", "plain": "Mutation Annotation Format, a table format for DNA mutation records.", "cn": "突变注释表格式，一行通常是一个突变。"},
-        {"term": "Feature", "plain": "The measured thing in a matrix, such as a gene or methylation probe.", "cn": "矩阵里被测量的对象，比如基因或甲基化探针。"},
-        {"term": "sample_index", "plain": "A number telling which sample position matches a value in a long vector.", "cn": "样本位置编号，用来对齐 values_text 里的数值。"},
-        {"term": "UNLOGGED table", "plain": "A faster PostgreSQL table that writes less recovery log; okay for reloadable local data.", "cn": "Postgres 快速表，适合本地可重导的大矩阵。"},
+        {"term": "TCGA", "plain": "The Cancer Genome Atlas, a big public cancer data project."},
+        {"term": "Schema", "plain": "A named folder inside a database that groups related tables."},
+        {"term": "Table", "plain": "A spreadsheet-like object in a database: rows are records, columns are fields."},
+        {"term": "Field / Column", "plain": "One kind of information stored for every record, like age or cancer type."},
+        {"term": "Record / Row", "plain": "One entry in a table, like one patient or one mutation."},
+        {"term": "Cohort", "plain": "A group of patients or samples chosen for the same study question."},
+        {"term": "Barcode", "plain": "A TCGA ID string that labels a patient, tumor sample, or normal sample."},
+        {"term": "Clinical endpoint", "plain": "A health outcome used in analysis, such as survival or recurrence."},
+        {"term": "OS", "plain": "Overall Survival: whether and when a patient died after diagnosis or treatment."},
+        {"term": "DSS", "plain": "Disease-Specific Survival: death counted only if it is related to the cancer."},
+        {"term": "DFI", "plain": "Disease-Free Interval: time before cancer comes back after being disease-free."},
+        {"term": "PFI", "plain": "Progression-Free Interval: time before the cancer gets worse or returns."},
+        {"term": "RNA-seq", "plain": "A sequencing method that measures which genes are turned on and how strongly."},
+        {"term": "miRNA", "plain": "Small RNA molecules that help control gene expression."},
+        {"term": "Methylation", "plain": "Chemical tags on DNA that can change how active a gene is."},
+        {"term": "RPPA", "plain": "A lab method that measures protein levels in many samples."},
+        {"term": "CNV / Copy number", "plain": "When parts of the genome are copied extra times or deleted in cancer cells."},
+        {"term": "MAF", "plain": "Mutation Annotation Format, a table format for DNA mutation records."},
+        {"term": "Feature", "plain": "The measured thing in a matrix, such as a gene or methylation probe."},
+        {"term": "sample_index", "plain": "A number telling which sample position matches a value in a long vector."},
+        {"term": "UNLOGGED table", "plain": "A faster PostgreSQL table that writes less recovery log; okay for reloadable local data."},
     ]
 
     type_notes = (
-        "本报告选择 `tcga_cdr_tcga_cdr.type` 做字段分析，因为它是最直观的 TCGA 癌种分组字段。"
-        "它不是测序质量字段，而是临床/项目标签；后续做表达、突变或甲基化比较时，通常先用它定义队列。"
+        "This report analyzes `tcga_cdr_tcga_cdr.type` because it is the most direct TCGA cancer-type grouping field."
+        "It is not a sequencing-quality field; it is a clinical/project label. Expression, mutation, and methylation comparisons usually start by using it to define cohorts."
     )
     matrix_note = (
-        "RNA-seq、甲基化和 miRNA 这类矩阵原始文件列数可达上万。导入时采用 feature 行 + sample 索引表的结构，"
-        "这是为了绕开 PostgreSQL 单表列数限制，也让原始矩阵更容易保留。"
+        "Raw RNA-seq, methylation, and miRNA matrices can contain tens of thousands of columns. The import uses feature rows plus a sample-index table, "
+        "which avoids PostgreSQL table-column limits and keeps the original matrix easier to preserve."
     )
     bio_note = (
-        "从生信角度看，这个 schema 同时包含 clinical endpoint、MAF 突变、segment copy number、RPPA 蛋白、RNA/miRNA/甲基化矩阵。"
-        "这些数据来源主要是 TCGA/PanCanAtlas，样本条形码是跨表整合的主线。"
+        "From a bioinformatics perspective, this schema contains clinical endpoints, MAF mutations, segment copy number, RPPA protein data, and RNA/miRNA/methylation matrices."
+        "The data mainly comes from TCGA/PanCanAtlas, and sample barcodes are the main key for cross-table integration."
     )
 
     table_rows = [
@@ -342,7 +342,7 @@ def render_report(data, echarts_src: str) -> str:
     @media (max-width: 900px) { header, main { padding-left:18px; padding-right:18px; } .cards, .charts, .two { grid-template-columns:1fr; } }
     """
     html_doc = f"""<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -353,18 +353,18 @@ def render_report(data, echarts_src: str) -> str:
 <body>
   <header>
     <h1>{REPORT_TITLE}</h1>
-    <div class="meta">生成时间：{esc(data["generated_at"])} · 数据库：PostgreSQL 容器 bio-postgres · schema：bio_tcga</div>
+    <div class="meta">Generated at: {esc(data["generated_at"])} · Database: PostgreSQL container bio-postgres · schema: bio_tcga</div>
   </header>
   <main>
-    <a class="back-link" href="/#analysis">← 回到报告清单</a>
+    <a class="back-link" href="/#analysis">← Back to report list</a>
     <section>
-      <h2>1. Schema 总览</h2>
+      <h2>1. Schema Overview</h2>
       <p>{esc(bio_note)}</p>
       <div class="grid cards">
-        <div class="card"><div class="label">表数量</div><div class="value">{fmt_int(total_tables)}</div></div>
-        <div class="card"><div class="label">估算总行数</div><div class="value">{fmt_int(total_rows)}</div></div>
-        <div class="card"><div class="label">字段总数</div><div class="value">{fmt_int(total_columns)}</div></div>
-        <div class="card"><div class="label">schema 体积</div><div class="value">{fmt_int(total_bytes / 1024 / 1024 / 1024)} GB</div></div>
+        <div class="card"><div class="label">Tables</div><div class="value">{fmt_int(total_tables)}</div></div>
+        <div class="card"><div class="label">Estimated Rows</div><div class="value">{fmt_int(total_rows)}</div></div>
+        <div class="card"><div class="label">Total Fields</div><div class="value">{fmt_int(total_columns)}</div></div>
+        <div class="card"><div class="label">Schema Size</div><div class="value">{fmt_int(total_bytes / 1024 / 1024 / 1024)} GB</div></div>
       </div>
       <div class="grid charts" style="margin-top:16px">
         <div id="rowsChart" class="chart"></div>
@@ -375,40 +375,40 @@ def render_report(data, echarts_src: str) -> str:
     </section>
 
     <section>
-      <h2>2. 初级字段分析：<code>tcga_cdr_tcga_cdr.type</code></h2>
+      <h2>2. Entry-Level Field Analysis: <code>tcga_cdr_tcga_cdr.type</code></h2>
       <p>{esc(type_notes)}</p>
-      <div class="note"><strong>字段解释：</strong><code>type</code> 是 TCGA 癌种项目简称。它用于描述每条患者临床记录属于哪个癌种队列，不是测序平台字段，也不是样本质量字段。</div>
+      <div class="note"><strong>Field explanation:</strong> <code>type</code> is the TCGA cancer-project abbreviation. It describes which cancer cohort each clinical patient record belongs to; it is not a sequencing-platform or sample-quality field.</div>
       <div class="grid two">
         <div id="typeChart" class="chart"></div>
         <div id="vitalChart" class="chart"></div>
       </div>
-      <h3>常用字段解释</h3>
-      {render_table(clinical_field_rows, ["字段", "含义", "初级用途"], ["field", "meaning", "use"])}
+      <h3>Common Field Explanations</h3>
+      {render_table(clinical_field_rows, ["Field", "Meaning", "Basic use"], ["field", "meaning", "use"])}
     </section>
 
     <section>
-      <h2>3. 组学矩阵结构说明</h2>
+      <h2>3. Omics Matrix Structure</h2>
       <p>{esc(matrix_note)}</p>
-      <div class="note">读取矩阵时，可以先在 <code>*_samples</code> 表中找到目标样本的 <code>sample_index</code>，再按 tab 拆分主表 <code>values_text</code>，取对应位置的值。</div>
+      <div class="note">When reading a matrix, first find the target sample's <code>sample_index</code> in the <code>*_samples</code> table, then split the main table's <code>values_text</code> by tab and retrieve the value at that position.</div>
     </section>
 
     <section>
-      <h2>4. 临床表样例</h2>
-      {render_table(sample_rows, ["患者条形码", "癌种 type", "诊断年龄", "性别", "生存状态", "OS", "OS 时间"], ["bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis", "gender", "vital_status", "os", "os_time"])}
+      <h2>4. Clinical Table Example</h2>
+      {render_table(sample_rows, ["Patient Barcode", "Cancer Type", "Age at Diagnosis", "Gender", "Vital Status", "OS", "OS Time"], ["bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis", "gender", "vital_status", "os", "os_time"])}
     </section>
 
     <section>
-      <h2>5. 缩写和专业词汇解释</h2>
-      <p>下面这些词用更接近课堂语言的方式解释。先抓住“它在问什么”，再回头看图表会容易很多。</p>
-      {render_table(glossary_rows, ["Term / abbreviation", "Plain English explanation", "中文理解"], ["term", "plain", "cn"])}
+      <h2>5. Abbreviations And Terms</h2>
+      <p>These terms are explained in classroom-style language. Once the question behind each term is clear, the charts become easier to read.</p>
+      {render_table(glossary_rows, ["Term / abbreviation", "Plain English explanation"], ["term", "plain"])}
     </section>
 
     <section>
-      <h2>6. 表清单</h2>
-      {render_table(table_rows, ["表", "类别", "行数", "字段数", "体积", "导入模式", "持久化"], ["table_name", "category", "rows", "columns", "size", "mode", "persistence"])}
+      <h2>6. Table Inventory</h2>
+      {render_table(table_rows, ["Table", "Category", "Rows", "Fields", "Size", "Import Mode", "Persistence"], ["table_name", "category", "rows", "columns", "size", "mode", "persistence"])}
     </section>
 
-    <p class="footer">说明：本报告是第一份 data analysis 报告，面向 schema 初识和字段理解。大表行数来自 PostgreSQL 统计信息，适合概览；正式审计可对目标表单独 count。</p>
+    <p class="footer">Note: this is the first data analysis report, focused on schema orientation and field understanding. Large-table row counts come from PostgreSQL statistics and are suitable for overview; formal audits can run exact counts on target tables.</p>
   </main>
   <script>
     const largestLabels = {js(largest_labels)};
@@ -445,12 +445,12 @@ def render_report(data, echarts_src: str) -> str:
       return chart;
     }}
     const charts = [
-      bar('rowsChart', '行数最多的表 Top 10', largestLabels, largestValues, '#1769aa'),
-      pie('categoryChart', '表类型分布', categoryData),
-      bar('columnsChart', '字段数最多的表 Top 10', columnLabels, columnValues, '#218380'),
-      bar('matrixSamplesChart', '矩阵样本数', matrixLabels, matrixValues, '#7b4ea3'),
-      bar('typeChart', 'type 字段：患者数最多的癌种 Top 15', typeLabels, typeValues, '#c8553d'),
-      pie('vitalChart', 'vital_status 分布', vitalData)
+      bar('rowsChart', 'Top 10 Tables By Row Count', largestLabels, largestValues, '#1769aa'),
+      pie('categoryChart', 'Table Category Distribution', categoryData),
+      bar('columnsChart', 'Top 10 Tables By Field Count', columnLabels, columnValues, '#218380'),
+      bar('matrixSamplesChart', 'Matrix Sample Counts', matrixLabels, matrixValues, '#7b4ea3'),
+      bar('typeChart', 'type Field: Top 15 Cancer Types By Patient Count', typeLabels, typeValues, '#c8553d'),
+      pie('vitalChart', 'vital_status Distribution', vitalData)
     ];
     window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
   </script>
@@ -472,22 +472,22 @@ def render_report_list(report_href: str, data) -> str:
     .desc { color:#384858; line-height:1.55; }
     """
     return f"""<!doctype html>
-<html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Analysis 报告清单</title><style>{css}</style></head>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Analysis Report List</title><style>{css}</style></head>
 <body><main>
-  <h1>Data Analysis 报告清单</h1>
-  <div class="meta">当前共有 3 份报告 · 最近更新：{esc(data["generated_at"])}</div>
+  <h1>Data Analysis Report List</h1>
+  <div class="meta">3 reports available · Last updated: {esc(data["generated_at"])}</div>
   <a class="card" href="{esc(report_href)}">
     <div class="title">1. {REPORT_TITLE}</div>
-    <div class="desc">本地 PostgreSQL 容器中 bio_tcga schema 的初级概览，包括表规模、数据类型、TCGA 临床字段 type 的解释和癌种分布图。</div>
+    <div class="desc">An entry-level overview of the bio_tcga schema in the local PostgreSQL container, including table scale, data types, the TCGA clinical type field, and cancer-type distributions.</div>
   </a>
   <a class="card" href="reports/tcga_mc3_sequencing_deep_dive.html">
-    <div class="title">2. TCGA MC3 癌症测序突变表深入分析</div>
-    <div class="desc">深入分析 MC3 MAF 癌症测序突变表，覆盖变异类型、癌种、基因、染色体、VAF、caller 支持度，并解释全部 114 个字段。</div>
+    <div class="title">2. TCGA MC3 Cancer Sequencing Mutation Table Deep Dive</div>
+    <div class="desc">A deeper analysis of the MC3 MAF cancer sequencing mutation table, covering variant types, cancer types, genes, chromosomes, VAF, caller support, and all 114 fields.</div>
   </a>
   <a class="card" href="reports/tcga_coad_integrated_analysis.html">
-    <div class="title">3. TCGA COAD 结肠癌测序与多组学联合分析</div>
-    <div class="desc">聚焦 COAD 结肠癌，把临床、MC3 测序突变、多组学样本覆盖、样本质量注释和术语解释整合到一份报告。</div>
+    <div class="title">3. TCGA COAD Sequencing And Multi-Omics Integrated Analysis</div>
+    <div class="desc">A COAD-focused report integrating clinical data, MC3 sequencing mutations, multi-omics sample coverage, sample-quality annotations, and term explanations.</div>
   </a>
 </main></body></html>
 """
@@ -495,7 +495,7 @@ def render_report_list(report_href: str, data) -> str:
 
 def render_index(data) -> str:
     return f"""<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -503,7 +503,7 @@ def render_index(data) -> str:
   <title>Data Analysis</title>
 </head>
 <body>
-  <p><a href="report-list.html">打开 Data Analysis 报告清单</a></p>
+  <p><a href="report-list.html">Open the Data Analysis report list</a></p>
 </body>
 </html>
 """

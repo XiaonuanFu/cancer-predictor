@@ -36,7 +36,7 @@ def extract_important_genes(trained_models, feature_names: list[str], top_n: int
                         "gene_symbol": feature_names[idx],
                         "importance_score": score,
                         "direction": "higher_tumor_score" if score > 0 else "higher_normal_score",
-                        "short_explanation": "Candidate predictive gene / 候选预测基因；requires literature review / 需要后续文献核查。",
+                        "short_explanation": "Candidate predictive gene; requires follow-up literature review.",
                     }
                 )
         elif hasattr(model, "feature_importances_"):
@@ -50,7 +50,7 @@ def extract_important_genes(trained_models, feature_names: list[str], top_n: int
                         "gene_symbol": feature_names[idx],
                         "importance_score": float(scores[idx]),
                         "direction": "tree_importance",
-                        "short_explanation": "Candidate predictive gene / 候选预测基因；requires literature review / 需要后续文献核查。",
+                        "short_explanation": "Candidate predictive gene; requires follow-up literature review.",
                     }
                 )
     important = pd.DataFrame(records)
@@ -78,13 +78,13 @@ def write_model_report(metrics: pd.DataFrame, important: pd.DataFrame) -> None:
 
     report = f"""# COAD Tumor vs Normal RNA Expression Model Report
 
-## Summary / 摘要
+## Summary
 
 This is an exploratory, research-only COAD tumor vs normal classifier.
 
-本报告使用 RNA expression 构建 COAD 结肠癌 tumor/normal 二分类模型。Tumor samples come from `bio_tcga`, while normal samples come from `tcga_coad`; the two sources may have different processing pipelines, so results must not be interpreted as a clinical diagnostic model.
+This report uses RNA expression to build a COAD colon cancer tumor/normal binary classifier. Tumor samples come from `bio_tcga`, while normal samples come from `tcga_coad`; the two sources may have different processing pipelines, so results must not be interpreted as a clinical diagnostic model.
 
-## Data / 数据
+## Data
 
 - Tumor samples: {summary.get("tumor_samples", "unknown")}
 - Normal samples: {summary.get("normal_samples", "unknown")}
@@ -94,15 +94,15 @@ This is an exploratory, research-only COAD tumor vs normal classifier.
 - Normal source: {summary.get("normal_source", "unknown")}
 - Preprocessing: `log2(x + 1)`, low-variance filtering, median imputation inside each model Pipeline, class imbalance handled with `class_weight='balanced'`.
 
-## Metrics / 指标
+## Metrics
 
 {metrics_md}
 
-## Top Important Genes / 重要基因候选
+## Top Important Genes
 
 {genes_md}
 
-## Caveats / 限制
+## Caveats
 
 - This is research-only and not for clinical diagnosis.
 - Tumor and normal data come from different schemas/pipelines.

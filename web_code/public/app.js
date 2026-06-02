@@ -20,11 +20,32 @@ const copy = {
   },
   analysis: {
     kicker: "Data Analysis",
-    title: "Database analysis overview",
+    title: "Data analysis reports",
     empty: "No analysis metadata available.",
-    hint: "The overview summarizes table counts, row counts, and widest schemas from PostgreSQL."
+    hint: "Generated local HTML reports and PostgreSQL overview metadata will appear here."
   }
 };
+
+const analysisReports = [
+  {
+    title: "TCGA Schema Basic Analysis Report",
+    href: "/data-analysis/reports/tcga_schema_basic_analysis.html",
+    description:
+      "An entry-level overview of the bio_tcga schema, including table scale, data categories, the TCGA clinical type field, and cancer-type distributions."
+  },
+  {
+    title: "TCGA MC3 Cancer Sequencing Mutation Table Deep Dive",
+    href: "/data-analysis/reports/tcga_mc3_sequencing_deep_dive.html",
+    description:
+      "A deeper analysis of the MC3 MAF mutation table, covering variant types, cancer types, genes, chromosomes, VAF, caller support, and field explanations."
+  },
+  {
+    title: "TCGA COAD Sequencing And Multi-Omics Integrated Analysis",
+    href: "/data-analysis/reports/tcga_coad_integrated_analysis.html",
+    description:
+      "A COAD-focused report integrating clinical data, MC3 sequencing mutations, multi-omics sample coverage, sample-quality annotations, and term explanations."
+  }
+];
 
 const elements = {
   dbPill: document.querySelector("#db-pill"),
@@ -122,7 +143,26 @@ function renderAnalysis() {
     .map((table) => `<li>${table.schema}.${table.name} · ${table.columnCount} columns</li>`)
     .join("");
 
+  const reportTiles = analysisReports
+    .map(
+      (report, index) => `
+        <a class="analysis-tile report-tile" href="${report.href}">
+          <span class="metric-label">Report ${index + 1}</span>
+          <strong>${report.title}</strong>
+          <p>${report.description}</p>
+        </a>
+      `
+    )
+    .join("");
+
   elements.analysisView.innerHTML = `
+    <article class="analysis-tile report-list-tile">
+      <span class="metric-label">Report List</span>
+      <strong>Data Analysis Reports</strong>
+      <p>Open the generated local HTML reports for schema review, mutation analysis, and COAD integrated analysis.</p>
+      <a href="/data-analysis/report-list.html">Open full report list</a>
+    </article>
+    ${reportTiles}
     <article class="analysis-tile">
       <span class="metric-label">All rows</span>
       <strong>${formatNumber(overview.totalRows)}</strong>

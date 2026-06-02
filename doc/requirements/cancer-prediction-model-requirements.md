@@ -1,342 +1,328 @@
-# COAD 结肠癌预测模型需求文档
+# COAD Cancer Prediction Model Requirements
 
-更新日期：2026-05-29
+Last updated: 2026-05-29
 
-## 需求来源
+## Requirement Source
 
-本需求文档根据前序会话重新整理，必须遵守一个核心范围约束：
+This requirements document consolidates earlier project discussions around one core scope constraint:
 
-> 模型研究范围控制在 COAD 结肠癌数据内，不做泛癌、多癌种分类。
+> Keep the model research scope within TCGA-COAD colon cancer data. Do not build a pan-cancer or multi-cancer classifier.
 
-前序会话中的项目定位包括：
+The earlier project framing included these decisions:
 
-- 项目发起人目前是高二学生。
-- 项目目标是完成一个可展示在大学申请文书或活动经历中的科研项目。
-- 原始想法是“通过已有的癌症序列去推测未知序列的癌症可能性”。
-- 当前本地容器中已经有 TCGA PanCanAtlas 癌症测序数据和 TCGA-COAD 正常样本数据。
-- 已经围绕 COAD 做过一份结肠癌测序与多组学联合分析报告。
-- 第一阶段要先用简单的 TCGA COAD 数据完成可运行模型。
-- 第二阶段再使用更复杂的 UCSC Xena TCGA-GTEx Toil 数据，仍然限定在结肠癌/结肠组织相关问题上。
+- The project owner is currently a high school sophomore.
+- The goal is to build a research project that can be shown in college application essays or activity records.
+- The original idea was to infer cancer likelihood from existing cancer sequence data.
+- The local container already contains TCGA PanCanAtlas cancer sequencing data and TCGA-COAD normal-sample data.
+- A COAD sequencing and multi-omics integrated analysis report already exists.
+- Stage 1 should first build a runnable model using simple TCGA COAD data.
+- Stage 2 can use the more complex UCSC Xena TCGA-GTEx Toil dataset, still limited to colon cancer or colon-tissue questions.
 
-因此，本项目不再定义为“多癌种识别”或“pan-cancer classification”，而是定义为：
+Therefore, this project should not be defined as "multi-cancer recognition" or "pan-cancer classification." It should be defined as:
 
-> 基于 COAD 结肠癌数据的肿瘤/正常识别、分子特征预测和关键基因解释项目。
+> A project for tumor/normal classification, molecular-feature prediction, and key-gene interpretation using COAD colon cancer data.
 
-## 已确认实施决策
+## Confirmed Implementation Decisions
 
-当前第一版模型按以下决策执行：
+- The first model version should prioritize RNA expression features. Do not mix mutation, CNV, methylation, or other multi-omics features into the first baseline.
+- Normal samples should be selected from `tcga_coad.star_counts_with_metadata` where `sample_type = 'Solid Tissue Normal'`.
+- The first normal-expression field should be `tcga_coad.star_counts_with_metadata.tpm_unstranded`.
+- Tumor samples should be selected from `bio_tcga` COAD cancer samples. Use `bio_tcga.tcga_cdr_tcga_cdr WHERE type = 'COAD'` to identify COAD patients, then join to RNA expression samples in `bio_tcga`.
+- The first tumor RNA expression source should be `bio_tcga.matrix_rnaseq_gene_expression` plus `bio_tcga.matrix_rnaseq_gene_expression_samples`.
+- The first task is fixed as COAD `tumor vs normal` binary classification.
+- Python processing may apply statistical transformations such as `log2(TPM + 1)`, scaling, and feature filtering. Raw database tables and raw source files must not be modified.
+- The first version should use only shared, alignable protein-coding gene symbols present on both the tumor and normal sides.
+- `train/test split` and random seeds have no special project constraint. Use `test_size=0.2` and `random_state=42` by default, and save the split results.
+- Baseline models are limited to logistic regression, random forest, and linear SVM. XGBoost is not required for the first version.
+- The main deliverable is a research report, with notebooks and Python scripts as reproducible support.
+- The model source directory should be `code/coad-predictor-model/`. It should also be published to the runnable Jupyter container directory `/workspace/coad-predictor-model/`.
+- Report language should now be English. Key scientific terms and model metrics should remain in their standard English form.
 
-- 第一版特征优先使用 RNA expression，不先混入突变、CNV、甲基化等多组学特征。
-- normal 样本从 `tcga_coad.star_counts_with_metadata` 中筛选，条件为 `sample_type = 'Solid Tissue Normal'`。
-- normal 表达量字段第一版使用 `tcga_coad.star_counts_with_metadata.tpm_unstranded`。
-- tumor 样本从 `bio_tcga` 中筛选 COAD 癌症样本，筛选逻辑参考已有高二学生项目会话和 COAD 联合分析报告：以 `bio_tcga.tcga_cdr_tcga_cdr WHERE type = 'COAD'` 确定 COAD 病人，再关联 `bio_tcga` 中的 RNA expression 样本。
-- tumor RNA expression 第一版使用 `bio_tcga.matrix_rnaseq_gene_expression` 和 `bio_tcga.matrix_rnaseq_gene_expression_samples`。
-- 第一版任务固定为 COAD `tumor vs normal` 二分类。
-- 允许在 Python 处理中做统计转换，例如 `log2(TPM + 1)`、标准化和特征过滤；原始数据库表和原始文件不得修改。
-- 第一版只使用 tumor 和 normal 两边共有、可对齐的 protein-coding gene symbol。
-- train/test split 和随机种子无特殊要求，默认可使用 `test_size=0.2`、`random_state=42`，并保存拆分结果。
-- 第一版 baseline 模型限定为 logistic regression、random forest、linear SVM；暂不引入 XGBoost 作为必做模型。
-- 第一版交付以科研报告为主，Notebook 和 Python 脚本作为可复现支撑。
-- 模型源码主目录放在仓库 `code/coad-predictor-model/`，同时发布同步到 Jupyter 容器可运行目录 `/workspace/coad-predictor-model/`。
-- 报告语言使用中英文混合：中文解释为主，关键术语和模型指标保留英文。
-- 当前阶段只记录需求，暂不创建 `code/coad-predictor-model/` 目录，也不开始写模型代码。
+## Project Positioning
 
-## 项目定位
-
-### 推荐项目题目
-
-中文题目：
-
-> 基于 TCGA-COAD 基因表达数据的结肠癌肿瘤/正常预测模型及关键基因解释
-
-英文题目：
+### Recommended Project Title
 
 > A Machine Learning Model for Tumor-Normal Classification in TCGA-COAD Using Gene Expression Profiles
 
-### 项目核心目标
+### Core Goal
 
-在 COAD 结肠癌范围内，使用公开组学数据建立一个研究型机器学习模型，根据样本的分子特征判断样本更接近结肠癌肿瘤组织还是正常结肠组织，并进一步解释哪些基因或分子特征对预测贡献较大。
+Within the COAD colon cancer scope, use public omics data to build a research-oriented machine learning model that uses molecular features to classify whether a sample is closer to colon cancer tumor tissue or normal colon tissue. The project should also explain which genes or molecular features contribute most strongly to the prediction.
 
-该项目不应表述为：
+The project should not claim to:
 
-- 预测一个健康人未来是否会得癌症。
-- 输入任意未知 DNA 序列后直接判断患癌概率。
-- 识别所有癌症类型。
-- 可用于临床诊断或治疗决策。
+- Predict whether a healthy person will develop cancer in the future.
+- Take any unknown DNA sequence and directly output cancer probability.
+- Identify all cancer types.
+- Provide clinical diagnosis or treatment decisions.
 
-该项目应表述为：
+The project should claim to:
 
-- 在 COAD 结肠癌数据范围内，根据 RNA 表达特征训练 tumor/normal 分类模型。
-- 第一阶段基线明确使用 `bio_tcga` 中的癌症测序数据作为 tumor 来源，使用 `tcga_coad` 中的正常样本数据作为 normal 来源。
-- 使用 UCSC Xena TCGA-GTEx Toil 中与结肠组织相关的数据做第二阶段扩展。
-- 对模型重要基因进行生物学解释，形成适合高中科研项目展示的完整流程。
+- Train a tumor/normal classifier from RNA expression features within TCGA-COAD data.
+- Use cancer sequencing data in `bio_tcga` as the tumor source and normal samples in `tcga_coad` as the normal source for the first baseline.
+- Use UCSC Xena TCGA-GTEx Toil colon-related data as a Stage 2 extension.
+- Explain important genes biologically and present a complete workflow suitable for a high school research project.
 
-## 已有本地基础
+## Existing Local Foundation
 
-本地项目中已经存在 COAD 相关上下文和数据准备工作：
+The local project already has COAD context and data preparation work:
 
-- 已有 `TCGA COAD 结肠癌测序与多组学联合分析` 报告生成脚本。
-- 该报告使用了 COAD 临床数据、MC3 突变表、多组学覆盖信息和样本质量注释。
-- 已记录的 COAD 报告核心统计包括：459 个 COAD 临床患者、277,114 条 MC3 突变记录、406 个肿瘤样本、404 个有突变记录患者、19,586 个涉及突变的基因。
-- 当前项目约定的数据分工是：`tcga_coad` 里存放 COAD 正常样本数据，`bio_tcga` 里存放癌症测序数据。
-- `bio_tcga` 中的癌症数据可用于提取 COAD 肿瘤样本、突变信息、临床信息和已有 PanCanAtlas 相关组学矩阵。
-- `tcga_coad` 中的正常样本数据用于构建 COAD normal 对照。
-- 第一阶段模型需要把 `bio_tcga` 中的 COAD cancer/tumor 样本与 `tcga_coad` 中的 normal 样本对齐成同一套特征矩阵。
+- A report-generation script exists for a `TCGA COAD sequencing and multi-omics integrated analysis` report.
+- That report uses COAD clinical data, MC3 mutation data, multi-omics coverage information, and sample-quality annotations.
+- Recorded COAD report statistics include 459 COAD clinical patients, 277,114 MC3 mutation records, 406 tumor samples, 404 mutated patients, and 19,586 mutated genes.
+- The current data split is: `tcga_coad` stores COAD normal-sample data, while `bio_tcga` stores cancer sequencing data.
+- `bio_tcga` can provide COAD tumor samples, mutation information, clinical information, and existing PanCanAtlas omics matrices.
+- `tcga_coad` provides COAD normal controls.
+- Stage 1 should align COAD cancer/tumor samples from `bio_tcga` with normal samples from `tcga_coad` into one feature matrix.
 
-这些信息决定了第一阶段应该优先做 COAD tumor/normal 分类，并且明确区分两个数据来源：癌症样本来自 `bio_tcga`，正常样本来自 `tcga_coad`。
+## Feasibility And Difficulty
 
-## 可行性和难度判断
+### Overall Judgment
 
-### 总体判断
+The project is feasible. It is moderately difficult, but the COAD-only scope makes it clearer and more suitable for a high school research project.
 
-这个项目可以做，难度为中高，但在限定为 COAD 后更清晰、更适合高中科研项目。
+Reasons it is feasible:
 
-可行的原因：
+- COAD is a single, well-defined cancer type.
+- Local data already includes COAD cancer sequencing data, normal-sample data, clinical information, and mutation information.
+- Classification from expression matrices is more appropriate at this stage than starting from raw FASTQ/BAM reads.
+- Tumor/normal classification is intuitive and explainable to non-specialist readers.
+- Key-gene interpretation can connect machine learning results to colon cancer biology.
 
-- COAD 是明确的单一癌种，研究范围集中。
-- 本地已经有 COAD 相关的癌症测序数据、正常样本数据、临床信息和突变信息。
-- 使用表达矩阵做分类，比从 FASTQ/BAM 原始 reads 开始更适合当前阶段。
-- tumor/normal 分类任务直观，容易解释给非专业读者。
-- 关键基因解释可以把机器学习结果和结肠癌生物学联系起来。
+Main challenges:
 
-主要难点：
+- TCGA-COAD normal samples are much fewer than tumor samples, so the classes are imbalanced.
+- A single-cancer COAD task has fewer samples than pan-cancer tasks and is more prone to overfitting.
+- Tumor and normal samples come from different schemas, so gene IDs, expression units, pipelines, and sample origins must be checked carefully.
+- Stage 2 GTEx normal colon tissue introduces TCGA-versus-GTEx source differences.
+- Important genes show statistical association, not causal proof.
 
-- TCGA-COAD 正常样本数量明显少于肿瘤样本，类别不平衡。
-- COAD 单癌种内样本量比泛癌任务少，模型更容易过拟合。
-- 肿瘤和正常样本来自不同 schema，必须检查基因 ID、表达量单位、处理流程和样本来源差异。
-- 第二阶段使用 GTEx 正常结肠组织时，会引入 TCGA 与 GTEx 的数据来源差异。
-- 模型重要基因只能说明统计关联，不能直接证明因果关系。
+### Directions Not Recommended For The First Version
 
-### 不推荐的方向
+- Pan-cancer classification, such as BRCA/LUAD/COAD/SKCM multi-cancer classification.
+- Re-aligning raw FASTQ/BAM and re-calling variants.
+- Predicting future cancer risk for ordinary people.
+- Starting with deep learning or complex multi-omics fusion.
+- Claiming cancer detection without normal controls.
 
-第一版不建议做：
+## Two-Stage Build Plan
 
-- 泛癌分类，例如 BRCA、LUAD、COAD、SKCM 多癌种分类。
-- 从原始 FASTQ/BAM 重新比对和变异检测。
-- 预测普通人未来患癌风险。
-- 一开始就做深度学习或复杂多组学融合。
-- 没有正常对照时宣称可以判断“是否患癌”。
+### Stage 1: Simple TCGA-COAD Model
 
-## 两阶段建设路线
+The Stage 1 goal is to use locally available TCGA-COAD/GDC COAD data to build a complete, credible, and interpretable baseline model.
 
-### 第一阶段：TCGA-COAD 简单模型
+Recommended first task:
 
-第一阶段目标是使用本地已有的 TCGA-COAD/GDC COAD 数据，完成一个完整、可信、可解释的基础模型。
+- COAD tumor vs normal classification.
 
-推荐第一任务：
+Definition:
 
-- COAD tumor vs normal 分类。
+- Input data: COAD-related expression or sequencing features. The first version should prioritize alignable RNA expression features.
+- Tumor samples: COAD cancer/tumor samples selected from `bio_tcga`.
+- Normal samples: COAD normal samples selected from `tcga_coad`.
+- Labels: `tumor` or `normal`.
+- Model output: whether a COAD sample looks more like tumor tissue or normal colon tissue.
+- Model types: logistic regression, random forest, and linear SVM.
+- Key interpretation: whether important genes relate to colon cancer, cell proliferation, WNT pathway, DNA repair, immune microenvironment, or similar biology.
 
-具体定义：
+Optional Stage 1 extensions:
 
-- 输入数据：COAD 相关表达或测序特征，第一版优先使用可对齐的 RNA 表达特征。
-- 肿瘤样本：从 `bio_tcga` 中筛选 COAD cancer/tumor 样本。
-- 正常样本：从 `tcga_coad` 中读取 COAD normal 样本。
-- 标签：`tumor` 或 `normal`。
-- 模型输出：一个 COAD 样本更像肿瘤组织还是正常结肠组织。
-- 模型类型：logistic regression、random forest、linear SVM。
-- 重点解释：模型识别出的重要基因是否与结肠癌、细胞增殖、WNT pathway、DNA repair、免疫微环境等方向相关。
+- Define high mutation burden vs low mutation burden from COAD mutation data and train an expression or mutation-feature model.
+- Define early-stage vs late-stage labels from clinical staging, while noting missing labels and class imbalance.
+- Build a prognosis prototype from survival status or risk grouping. This is harder than tumor/normal classification and should not be the first main task.
 
-第一阶段可选扩展任务：
+Stage 1 success criteria:
 
-- 用 COAD 突变数据定义高突变负荷 vs 低突变负荷标签，训练表达或突变特征模型。
-- 用临床分期定义早期 vs 晚期标签，但要注意分期标签缺失和类别不平衡。
-- 用生存状态或风险分组做预后原型，但这比 tumor/normal 分类更难，不作为第一版主任务。
+- Generate a feature matrix from local COAD expression data.
+- Clearly record that tumor samples come from `bio_tcga` and normal samples come from `tcga_coad`.
+- Train a baseline tumor/normal classifier.
+- Output accuracy, F1, ROC-AUC, PR-AUC, and confusion matrix.
+- Explain at least 10 important genes or candidate features.
+- Clearly state that the model is research-only and not for clinical diagnosis.
 
-第一阶段成功标准：
+### Stage 2: UCSC Xena TCGA-GTEx Toil Extension
 
-- 能从本地 COAD 表达数据生成特征矩阵。
-- 能清楚记录 tumor 样本来自 `bio_tcga`，normal 样本来自 `tcga_coad`。
-- 能训练一个 baseline tumor/normal 分类模型。
-- 能输出 accuracy、F1、ROC-AUC、PR-AUC 和 confusion matrix。
-- 能解释至少 10 个重要基因或候选特征。
-- 能清楚说明这个模型是 research-only，不用于临床诊断。
+Stage 2 remains limited to COAD and colon-tissue questions. It should not expand into a pan-cancer task.
 
-### 第二阶段：UCSC Xena TCGA-GTEx Toil 复杂模型
+Recommended Stage 2 task:
 
-第二阶段仍然限定在 COAD/结肠组织范围内，不扩展成泛癌任务。
+- Compare or classify `bio_tcga` COAD tumor, `tcga_coad` normal, and GTEx colon normal samples.
 
-推荐第二任务：
+Definition:
 
-- `bio_tcga` COAD tumor vs `tcga_coad` normal vs GTEx colon normal 分类或对比验证。
-- 或者将 `bio_tcga` COAD tumor、`tcga_coad` COAD normal、GTEx colon normal 三类样本进行对比分析。
+- Input data: UCSC Xena TCGA-GTEx Toil RNA-seq recompute data.
+- Tumor samples: COAD tumor/cancer samples from `bio_tcga`, or matching TCGA-COAD tumor samples from Toil.
+- Normal samples: first use `tcga_coad` normal samples; in Stage 2 add GTEx colon normal tissues such as Colon - Transverse and Colon - Sigmoid.
+- Labels: `tumor` and `normal`, or more detailed labels such as `bio_tcga_tumor`, `tcga_coad_normal`, and `GTEx_normal`.
+- Model output: whether a sample is closer to tumor or normal in a COAD/colon-tissue setting.
 
-具体定义：
+Stage 2 must check:
 
-- 输入数据：UCSC Xena TCGA-GTEx Toil RNA-seq recompute 数据。
-- 肿瘤样本：`bio_tcga` 中的 COAD tumor/cancer 样本，或 Toil 数据中对应的 TCGA-COAD tumor 样本。
-- 正常样本：第一对照为 `tcga_coad` 中的 normal 样本；第二阶段优先加入 GTEx colon 相关正常组织，例如 Colon - Transverse、Colon - Sigmoid。
-- 标签：`tumor`、`normal`，或更细分为 `bio_tcga_tumor`、`tcga_coad_normal`、`GTEx_normal`。
-- 模型输出：样本在 COAD/结肠组织背景下更接近肿瘤还是正常。
+- Whether the model is learning TCGA-versus-GTEx source differences instead of cancer biology.
+- Whether GTEx colon normal and `tcga_coad` normal samples separate strongly in expression space.
+- Model performance grouped by tissue source, dataset source, and sample type.
+- Whether performance changes abnormally when dataset-source-related variables are added or removed.
 
-第二阶段必须检查：
+Stage 2 success criteria:
 
-- 模型是否只学到了 TCGA vs GTEx 的数据来源差异。
-- GTEx colon normal 与 `tcga_coad` normal 是否在表达空间中明显分离。
-- 按组织来源、数据来源和样本类型分组后的模型表现。
-- 加入或去掉 dataset source 相关变量后，模型性能是否异常变化。
+- Build a sample mapping and label table for TCGA-COAD and GTEx colon normal data.
+- Reproduce the Stage 2 feature matrix construction.
+- Train a tumor/normal model and report grouped metrics.
+- Provide a diagnosis of batch effect or dataset-source confounding.
 
-第二阶段成功标准：
+## Data Requirements
 
-- 能建立 TCGA-COAD 与 GTEx colon normal 的样本映射和标签表。
-- 能复现第二阶段特征矩阵构建。
-- 能训练 tumor/normal 模型并报告分组指标。
-- 能提供 batch effect 或 dataset-source confounding 的诊断说明。
+### Stage 1 Required Data
 
-## 数据需求
+The Stage 1 scope is COAD only:
 
-### 第一阶段必须使用的数据
+- COAD cancer sequencing data in `bio_tcga`.
+- `bio_tcga` tables needed for COAD tumor-sample filtering, clinical linkage, and mutation interpretation.
+- COAD normal-sample data in `tcga_coad`.
+- Alignable sample metadata, gene IDs, gene names, and expression/sequencing features across both schemas.
+- COAD clinical tables for patient IDs, sample filtering, and downstream interpretation.
 
-第一阶段数据范围限定为 COAD：
+Local sources currently available:
 
-- `bio_tcga` 中的 COAD 癌症测序数据。
-- `bio_tcga` 中可用于 COAD 肿瘤样本筛选、临床关联和突变解释的表。
-- `tcga_coad` 中的 COAD 正常样本数据。
-- 两个 schema 中可对齐的样本 metadata、基因 ID、基因名和表达/测序特征。
-- COAD 临床表，用于患者 ID、样本过滤和后续解释。
+- `bio_tcga`: cancer sequencing and PanCanAtlas data for COAD tumor/cancer samples.
+- `tcga_coad`: COAD normal-sample data for normal controls.
+- `data/gdc_tcga_coad_star_counts/`: local COAD STAR counts files. Confirm which schema and samples are currently imported before using.
+- `scripts/import_tcga_coad_star_counts.py`: existing import script for COAD STAR counts. If reused, confirm the target schema and data ownership match the current plan.
 
-本地当前可用信息：
+### Minimum Stage 1 Fields
 
-- `bio_tcga`：癌症测序和 PanCanAtlas 相关数据来源，用于 COAD tumor/cancer 样本。
-- `tcga_coad`：COAD 正常样本数据来源，用于 normal 对照。
-- `data/gdc_tcga_coad_star_counts/`：本地 COAD STAR counts 相关文件目录；使用前需要确认当前已导入到哪个 schema、哪些样本作为 normal 使用。
-- `scripts/import_tcga_coad_star_counts.py`：现有 COAD STAR counts 导入脚本；如果继续使用，需要确保导入目标和当前数据分工一致。
+Each sample should include at least:
 
-### 第一阶段最低字段
+- `file_id`
+- `case_submitter_id`
+- `sample_submitter_id`
+- `sample_type`
+- `source_schema`, such as `bio_tcga` or `tcga_coad`
+- `source_table` or source file name
+- alignable gene expression or sequencing features
+- tumor/normal label
+- source file name and md5
 
-每个样本至少需要：
+### Optional COAD Auxiliary Data
 
-- `file_id`。
-- `case_submitter_id`。
-- `sample_submitter_id`。
-- `sample_type`。
-- `source_schema`，取值如 `bio_tcga` 或 `tcga_coad`。
-- `source_table` 或来源文件名。
-- 可对齐的 gene expression 或测序特征。
-- tumor/normal 标签。
-- 数据来源文件名和 md5。
+These data are not required as Stage 1 model inputs, but can support explanation or extensions:
 
-### 可加入的 COAD 辅助数据
+- MC3 MAF mutation data
+- COAD clinical staging
+- overall survival information
+- sample-quality annotations
+- CNV, methylation, miRNA, RPPA, or other multi-omics data
 
-辅助数据不作为第一版必须输入，但可以用于解释或扩展：
+### Stage 2 Additional Data
 
-- MC3 MAF 突变数据。
-- COAD 临床分期。
-- 总体生存信息。
-- 样本质量注释。
-- CNV、methylation、miRNA、RPPA 等多组学数据。
+Stage 2 should select COAD or colon-tissue samples from UCSC Xena TCGA-GTEx Toil:
 
-### 第二阶段新增数据
+- Toil gene expression matrix, for example `TcgaTargetGtex_gene_expected_count.gz`
+- phenotype/metadata file, for example `TcgaTargetGTEX_phenotype.txt.gz`
+- TCGA-COAD tumor samples
+- GTEx colon normal samples, preferably Colon - Transverse and Colon - Sigmoid
+- dataset label: TCGA or GTEx; TARGET is not included in the first COAD model by default
+- tissue type
+- tumor/normal label
+- gene identifier and gene symbol
 
-第二阶段需要从 UCSC Xena TCGA-GTEx Toil 数据中筛选 COAD/结肠组织相关样本：
+### External Validation Data
 
-- Toil gene expression matrix，例如 `TcgaTargetGtex_gene_expected_count.gz`。
-- phenotype/metadata 文件，例如 `TcgaTargetGTEX_phenotype.txt.gz`。
-- TCGA-COAD tumor 样本。
-- GTEx colon normal 样本，优先 Colon - Transverse 和 Colon - Sigmoid。
-- dataset 标记：TCGA、GTEx；TARGET 默认不纳入第一版 COAD 模型。
-- tissue 类型。
-- tumor/normal 标签。
-- gene identifier 和 gene symbol。
+If time allows, search for additional COAD or colorectal cancer datasets for external validation:
 
-### 外部验证数据
+- Colon cancer expression datasets in GEO.
+- Colorectal cancer cohorts in ICGC.
+- Colorectal cancer proteomics or multi-omics data in CPTAC.
 
-如时间允许，可以寻找额外 COAD/结直肠癌数据做外部验证：
+External validation is not required for the first version, but it would substantially strengthen the project.
 
-- GEO 中的结肠癌表达数据集。
-- ICGC 中的结直肠癌相关队列。
-- CPTAC 中的结直肠癌蛋白组或多组学数据。
+## Python And Jupyter Container Requirements
 
-外部验证不是第一版必须交付，但如果能完成，会显著增强科研项目可信度。
+Model building should be done in Python and run inside the Jupyter container.
 
-## Python 和 Jupyter 容器需求
+Runtime requirements:
 
-本项目的模型构建使用 Python 完成，并放在 Jupyter 容器中运行。
+- Jupyter container name: `bio-jupyter`
+- Container working directory: `/workspace`
+- Host directory: `docker_storage/jupyter/`
+- Jupyter URL: `http://127.0.0.1:8888/lab?token=bioanalysis`
+- Main Python dependencies: `pandas`, `numpy`, `scikit-learn`, `scipy`, `matplotlib`, `seaborn`, `plotly`, `sqlalchemy`, `psycopg2-binary`
 
-运行环境要求：
+Code directory requirements:
 
-- Jupyter 容器名称：`bio-jupyter`。
-- 容器工作目录：`/workspace`。
-- 宿主机对应目录：`docker_storage/jupyter/`。
-- Jupyter 访问地址：`http://127.0.0.1:8888/lab?token=bioanalysis`。
-- Python 主要依赖：`pandas`、`numpy`、`scikit-learn`、`scipy`、`matplotlib`、`seaborn`、`plotly`、`sqlalchemy`、`psycopg2-binary`。
+- Repository source directory: `code/coad-predictor-model/`
+- Jupyter runtime directory: `/workspace/coad-predictor-model/`
+- Host-side Jupyter publish directory: `docker_storage/jupyter/coad-predictor-model/`
+- `code/coad-predictor-model/` is the primary maintenance location. After changes, sync it to `docker_storage/jupyter/coad-predictor-model/` so the Jupyter container can run it directly.
 
-代码目录要求：
-
-- 仓库源码目录：`code/coad-predictor-model/`。
-- Jupyter 容器运行目录：`/workspace/coad-predictor-model/`。
-- 宿主机对应的 Jupyter 发布目录：`docker_storage/jupyter/coad-predictor-model/`。
-- `code/coad-predictor-model/` 是主要维护位置；修改后需要同步发布到 `docker_storage/jupyter/coad-predictor-model/`，让 Jupyter 容器可以直接运行。
-
-建议的仓库源码目录：
+Suggested repository source layout:
 
 ```text
 code/coad-predictor-model/
-  notebooks/                 Jupyter Notebook，记录探索和训练过程
-  src/                       可复用 Python 模块
-  reports/                   可提交的轻量模型报告和说明
-  README.md                  运行说明
+  notebooks/                 Jupyter notebooks for exploration and training
+  src/                       reusable Python modules
+  reports/                   lightweight model reports and notes
+  README.md                  run instructions
 ```
 
-建议的 Jupyter 容器运行目录：
+Suggested Jupyter runtime layout:
 
 ```text
 /workspace/coad-predictor-model/
   notebooks/
   src/
-  data/                      从 PostgreSQL 导出的中间特征表，通常不提交 git
-  models/                    训练好的本地模型文件，通常不提交 git
-  reports/                   指标、图表、解释表和模型报告
+  data/                      intermediate feature tables exported from PostgreSQL, usually not committed
+  models/                    trained local model files, usually not committed
+  reports/                   metrics, figures, interpretation tables, and model reports
 ```
 
-实现要求：
+Implementation requirements:
 
-- 第一版可以先用 Notebook 完成，但关键逻辑要整理成可复用函数。
-- 数据准备、模型训练、模型评估、结果解释应拆成清晰步骤。
-- 不要把数据库密码、绝对个人路径或一次性实验输出硬编码到模型逻辑里。
-- 大型中间数据、模型文件和图表默认保存在 `docker_storage/jupyter/coad-predictor-model/` 下，不提交到 git。
-- 重要的最终方法说明和需求文档保存在 `doc/` 下。
-- 需要提供从仓库源码发布到 Jupyter 容器目录的同步方式，例如使用 `rsync` 或后续脚本。
-- 当前阶段不创建该目录；等正式开始实现模型时再创建并同步。
+- The first version may start in notebooks, but core logic should be organized into reusable functions.
+- Data preparation, model training, model evaluation, and result interpretation should be separate, clear steps.
+- Do not hard-code database passwords, personal absolute paths, or one-off experimental outputs in model logic.
+- Large intermediate data, model files, and figures should be saved under `docker_storage/jupyter/coad-predictor-model/` by default and should not be committed.
+- Important final method notes and requirements documents should remain under `doc/`.
+- Provide a sync method from repository source to the Jupyter container directory, such as `rsync` or a later script.
+- Do not create the directory at the requirements stage. Create and sync it when model implementation officially starts.
 
-建议的发布命令：
+Suggested publish command:
 
 ```bash
 rsync -a --delete code/coad-predictor-model/ docker_storage/jupyter/coad-predictor-model/
 ```
 
-## Python 数据准备需求
+## Python Data Preparation Requirements
 
-Python 代码应优先从 PostgreSQL 读取已经导入的 COAD 数据，而不是在 Notebook 中重复解析大量原始 TSV 文件。
+Python code should read imported COAD data from PostgreSQL first, rather than repeatedly parsing large raw TSV files in notebooks.
 
-数据库连接：
+Database connection:
 
-- 容器内 PostgreSQL host：`bio-postgres`。
-- 数据库：`bio`。
-- 用户：`bio`。
-- 密码：本地开发环境使用 `bioanalysis`。
-- 主要 schema：`bio_tcga` 和 `tcga_coad`。
-- `bio_tcga` 用于读取 COAD 癌症测序数据和肿瘤样本相关信息。
-- `tcga_coad` 用于读取 COAD 正常样本数据。
-- Python 数据准备必须保留 `source_schema` 字段，防止后续混淆 tumor 与 normal 的来源。
+- PostgreSQL host inside container: `bio-postgres`
+- Database: `bio`
+- User: `bio`
+- Local development password: `bioanalysis`
+- Main schemas: `bio_tcga` and `tcga_coad`
+- `bio_tcga` is used for COAD cancer sequencing data and tumor-sample information.
+- `tcga_coad` is used for COAD normal-sample data.
+- Python data preparation must preserve `source_schema` to prevent later confusion between tumor and normal origins.
 
-第一阶段数据准备流程：
+Stage 1 data preparation workflow:
 
-1. 使用 `sqlalchemy` 或 `psycopg2` 从 `bio_tcga.matrix_rnaseq_gene_expression_samples` 读取 COAD tumor RNA expression 样本 metadata。
-2. 使用 `bio_tcga.matrix_rnaseq_gene_expression` 读取 tumor RNA expression 矩阵值，并按 sample index 与样本表对齐。
-3. 使用 `sqlalchemy` 或 `psycopg2` 从 `tcga_coad.star_counts_with_metadata` 读取 COAD normal 样本，筛选条件为 `sample_type = 'Solid Tissue Normal'`，表达量字段为 `tpm_unstranded`。
-4. 建立统一样本表，将 `bio_tcga` 来源样本标记为 `tumor`，将 `tcga_coad` 来源样本标记为 `normal`。
-5. 生成一个样本级 metadata 表，至少包含 `sample_id`、`case_submitter_id`、`sample_submitter_id`、`sample_type`、`source_schema`、`source_table`、`label`。
-6. 将两个 schema 中可对齐的基因表达特征转换为样本 x 特征的 `pandas.DataFrame`。
-7. 对齐 gene identifier/gene symbol，只保留 tumor 和 normal 两边都存在且定义一致的 protein-coding gene symbol。
-8. 对表达量做统计转换，例如 `log2(TPM + 1)`；转换只发生在 Python 生成的中间特征表中，不修改原始数据库表或原始文件。
-9. 过滤低表达、低方差和缺失过多的基因或特征。
-10. 保存处理后的特征矩阵和标签表，例如：
+1. Use `sqlalchemy` or `psycopg2` to read COAD tumor RNA expression sample metadata from `bio_tcga.matrix_rnaseq_gene_expression_samples`.
+2. Read tumor RNA expression matrix values from `bio_tcga.matrix_rnaseq_gene_expression` and align them with the samples table by sample index.
+3. Use `sqlalchemy` or `psycopg2` to read COAD normal samples from `tcga_coad.star_counts_with_metadata`, filtering to `sample_type = 'Solid Tissue Normal'` and using `tpm_unstranded` as the expression field.
+4. Build a unified sample table. Mark `bio_tcga` samples as `tumor` and `tcga_coad` samples as `normal`.
+5. Generate sample-level metadata containing at least `sample_id`, `case_submitter_id`, `sample_submitter_id`, `sample_type`, `source_schema`, `source_table`, and `label`.
+6. Convert alignable gene expression features from both schemas into a sample-by-feature `pandas.DataFrame`.
+7. Align gene identifiers and gene symbols. Keep only protein-coding gene symbols present and consistently defined on both tumor and normal sides.
+8. Apply expression transformations such as `log2(TPM + 1)` only to Python-generated intermediate feature tables, not to raw database tables or raw files.
+9. Filter low-expression, low-variance, or high-missingness genes/features.
+10. Save processed feature matrices and label tables, for example:
    - `/workspace/coad-predictor-model/data/coad_tpm_log2_features.parquet`
    - `/workspace/coad-predictor-model/data/coad_tumor_normal_labels.csv`
    - `/workspace/coad-predictor-model/data/coad_selected_genes.txt`
 
-normal 样本筛选 SQL：
+Normal-sample filtering SQL:
 
 ```sql
 SELECT *
@@ -344,7 +330,7 @@ FROM tcga_coad.star_counts_with_metadata
 WHERE sample_type = 'Solid Tissue Normal';
 ```
 
-tumor 样本筛选 SQL 参考：
+Tumor-sample filtering SQL reference:
 
 ```sql
 WITH coad_patients AS (
@@ -358,187 +344,187 @@ JOIN coad_patients c
   ON substring(s.sample_id from 1 for 12) = c.bcr_patient_barcode;
 ```
 
-说明：
+Notes:
 
-- `bio_tcga.matrix_rnaseq_gene_expression_samples` 用于定位 COAD tumor/cancer RNA expression 样本。
-- 实际表达矩阵值需要与 `bio_tcga.matrix_rnaseq_gene_expression` 按样本索引对齐。
-- `tcga_coad.star_counts_with_metadata.tpm_unstranded` 是第一版 normal 表达量字段。
-- 如果后续发现 `bio_tcga` 中有更适合的 COAD RNA expression 表或视图，允许替换，但必须在报告中记录替换原因。
+- `bio_tcga.matrix_rnaseq_gene_expression_samples` locates COAD tumor/cancer RNA expression samples.
+- Actual expression matrix values must be aligned with `bio_tcga.matrix_rnaseq_gene_expression` by sample index.
+- `tcga_coad.star_counts_with_metadata.tpm_unstranded` is the first-version normal expression field.
+- If a better COAD RNA expression table or view is later found in `bio_tcga`, it may replace the initial table, but the report must record the reason.
 
-数据准备质量检查：
+Data preparation quality checks:
 
-- 输出 tumor 和 normal 样本数量。
-- 检查 `sample_id` 或 `file_id` 是否唯一。
-- 检查同一 `case_submitter_id` 是否有多个样本。
-- 检查特征矩阵行数是否与标签表样本数一致。
-- 检查 `source_schema` 是否与标签一致：`bio_tcga` 对应 tumor，`tcga_coad` 对应 normal。
-- 检查 tumor 和 normal 特征是否使用同一 gene identifier、同一量纲或可解释的转换方式。
-- 检查是否存在全空基因、常数基因或异常极值。
-- 记录过滤前后基因数量。
+- Output tumor and normal sample counts.
+- Check whether `sample_id` or `file_id` is unique.
+- Check whether the same `case_submitter_id` has multiple samples.
+- Check that the feature matrix row count matches the label table sample count.
+- Check that `source_schema` matches the label: `bio_tcga` means tumor, `tcga_coad` means normal.
+- Check that tumor and normal features use the same gene identifier and a common or interpretable expression scale.
+- Check for all-empty genes, constant genes, or extreme outliers.
+- Record gene counts before and after filtering.
 
-## 模型输入和标签定义
+## Model Inputs And Label Definitions
 
-### 主任务：COAD tumor vs normal
+### Main Task: COAD Tumor vs Normal
 
-输入：
+Input:
 
-- 每个 COAD 样本的 RNA expression 特征；第一版优先使用可对齐的 protein-coding gene expression，并在数据准备阶段记录具体表达量单位和转换方式。
+- RNA expression features for each COAD sample. The first version should prioritize alignable protein-coding gene expression and record the expression unit and transformation method during data preparation.
 
-标签：
+Labels:
 
-- `tumor`：从 `bio_tcga` 中筛选出的 COAD 癌症样本。
-- `normal`：从 `tcga_coad` 中读取的 COAD 正常样本；第二阶段可加入 GTEx colon normal。
+- `tumor`: COAD cancer samples selected from `bio_tcga`.
+- `normal`: COAD normal samples selected from `tcga_coad`; Stage 2 may add GTEx colon normal.
 
-适合程度：
+Fit for purpose:
 
-- 最适合作为第一版任务。
-- 范围与 COAD 完全一致。
-- 问题清晰，适合高中科研项目展示。
-- 可以自然衔接到关键基因解释。
+- Best first-version task.
+- Scope is fully aligned with COAD.
+- The problem is clear and suitable for high school research presentation.
+- It connects naturally to key-gene interpretation.
 
-### 扩展任务 1：COAD 高突变负荷预测
+### Extension Task 1: COAD High Mutation Burden Prediction
 
-输入：
+Input:
 
-- gene expression 特征。
-- 可选突变特征。
+- gene expression features
+- optional mutation features
 
-标签：
+Labels:
 
-- 根据 COAD MC3 MAF 计算每个样本 mutation burden。
-- 按中位数或预设阈值分为 high mutation burden 和 low mutation burden。
+- Calculate per-sample mutation burden from COAD MC3 MAF.
+- Split into high mutation burden and low mutation burden using the median or a predefined threshold.
 
-注意事项：
+Notes:
 
-- 标签阈值要透明记录。
-- 高突变负荷可能与 MSI、POLE、样本质量等因素有关，需要谨慎解释。
+- The threshold must be transparently recorded.
+- High mutation burden may relate to MSI, POLE, sample quality, or other factors, so interpretation must be cautious.
 
-### 扩展任务 2：COAD 分期或预后风险
+### Extension Task 2: COAD Stage Or Prognosis Risk
 
-输入：
+Input:
 
-- gene expression。
-- mutation。
-- CNV。
-- 临床特征。
+- gene expression
+- mutation
+- CNV
+- clinical features
 
-标签：
+Labels:
 
-- AJCC stage。
-- 生存时间。
-- 生存状态。
+- AJCC stage
+- survival time
+- survival status
 
-注意事项：
+Notes:
 
-- 难度高于 tumor/normal 分类。
-- 标签缺失和删失会影响分析。
-- 不建议作为第一版主任务。
+- This is harder than tumor/normal classification.
+- Missing labels and censoring affect analysis.
+- It is not recommended as the first main task.
 
-## 数据处理需求
+## Data Processing Requirements
 
-第一阶段需要完成：
+Stage 1 must complete:
 
-1. 确认 `bio_tcga` 中哪些表用于 COAD 癌症样本和特征。
-2. 确认 `tcga_coad` 中哪些表用于 COAD 正常样本和特征。
-3. 从两个 schema 分别提取样本 metadata，并添加 `source_schema` 和 `label`。
-4. 统一样本 ID、case ID、gene ID 和 gene symbol。
-5. 只保留 tumor 与 normal 两边都能对齐的特征。
-6. 过滤非目标特征、低表达、低方差或缺失过多的基因。
-7. 对表达型特征做 `log2(TPM + 1)` 或等价标准化；对突变型特征记录编码方式。
-8. 进行 train/test split 或 cross-validation。
-9. 保证同一 `case_submitter_id` 不同时出现在训练集和测试集。
-10. 处理 tumor 和 normal 的类别不平衡，例如 class weight、分层抽样、PR-AUC 报告。
-11. 保存处理后的特征表、标签表、基因列表、样本来源表和数据处理记录。
+1. Confirm which `bio_tcga` tables provide COAD cancer samples and features.
+2. Confirm which `tcga_coad` tables provide COAD normal samples and features.
+3. Extract sample metadata from both schemas and add `source_schema` and `label`.
+4. Normalize sample IDs, case IDs, gene IDs, and gene symbols.
+5. Keep only features alignable between tumor and normal samples.
+6. Filter non-target features, low-expression genes, low-variance genes, or features with excessive missingness.
+7. Apply `log2(TPM + 1)` or equivalent scaling to expression features; record the encoding method for mutation features.
+8. Run train/test split or cross-validation.
+9. Ensure the same `case_submitter_id` does not appear in both train and test sets.
+10. Handle tumor/normal class imbalance with class weights, stratified sampling, PR-AUC reporting, or similar methods.
+11. Save processed feature tables, label tables, gene lists, sample-source tables, and data-processing records.
 
-第二阶段需要完成：
+Stage 2 must complete:
 
-1. 下载并整理 UCSC Xena TCGA-GTEx Toil 表达矩阵和 phenotype 文件。
-2. 只筛选 COAD tumor、`tcga_coad` normal、GTEx colon normal 相关样本。
-3. 对齐 gene identifiers 和 gene symbols。
-4. 建立 `bio_tcga_tumor`、`tcga_coad_normal`、`GTEx_normal` 等标签。
-5. 建立 colon tissue mapping 表。
-6. 检查 TCGA 与 GTEx 样本在 PCA/UMAP 中是否按数据来源分离。
-7. 在模型评估中单独报告 dataset-source confounding 诊断。
+1. Download and organize UCSC Xena TCGA-GTEx Toil expression matrices and phenotype files.
+2. Select only COAD tumor, `tcga_coad` normal, and GTEx colon normal samples.
+3. Align gene identifiers and gene symbols.
+4. Build labels such as `bio_tcga_tumor`, `tcga_coad_normal`, and `GTEx_normal`.
+5. Build a colon tissue mapping table.
+6. Check whether TCGA and GTEx samples separate by dataset source in PCA/UMAP.
+7. Report dataset-source confounding diagnostics separately in model evaluation.
 
-## 特征工程需求
+## Feature Engineering Requirements
 
-第一版特征工程应简单、透明、可解释：
+The first version should be simple, transparent, and interpretable:
 
-- 主要特征：protein-coding gene TPM。
-- 转换：`log2(TPM + 1)`。
-- 过滤：低表达、低方差、缺失过多基因。
-- 可选：选择 top variable genes。
-- 可选：PCA 或 UMAP 用于可视化，不直接作为唯一证据。
-- 可选：LASSO coefficient、random forest feature importance 或 SHAP 解释特征。
+- Main feature type: protein-coding gene TPM.
+- Transformation: `log2(TPM + 1)`.
+- Filtering: low expression, low variance, and excessive missingness.
+- Optional: select top variable genes.
+- Optional: use PCA or UMAP for visualization, not as the only evidence.
+- Optional: use LASSO coefficients, random forest feature importance, or SHAP for feature interpretation.
 
-必须避免：
+Must avoid:
 
-- 在全量数据上先做特征选择，再切分训练/测试集。
-- 把 `sample_type`、`source_schema`、`source_table`、文件名等标签或来源信息直接放入模型输入。
-- 同一个 case 的肿瘤和正常样本被分到不同集合。
-- 只看 accuracy，不看 normal 类别的召回率。
+- Performing feature selection on the full dataset before train/test split.
+- Including `sample_type`, `source_schema`, `source_table`, file names, or other label/source leakage fields in model inputs.
+- Placing tumor and normal samples from the same case into different splits.
+- Reporting only accuracy while ignoring normal-class recall.
 
-## 模型需求
+## Model Requirements
 
-### 第一版基线模型
+### First-Version Baselines
 
-至少训练一个基础模型：
+Train at least one baseline model, and ideally compare:
 
-- logistic regression with class weight。
-- random forest with class weight。
-- linear SVM with class weight。
+- logistic regression with class weight
+- random forest with class weight
+- linear SVM with class weight
 
-建议比较：
+Recommended comparison roles:
 
-- logistic regression：可解释基线。
-- random forest：非线性模型。
-- linear SVM：适合高维表达特征。
+- logistic regression: interpretable baseline
+- random forest: nonlinear model
+- linear SVM: suitable for high-dimensional expression features
 
-### 暂缓使用的模型
+### Models To Defer
 
-以下模型可作为后续扩展，不作为第一版主线：
+The following may be future extensions but should not be first-version requirements:
 
-- 深度神经网络。
-- autoencoder。
-- 多组学融合模型。
-- survival deep learning。
+- deep neural networks
+- autoencoders
+- multi-omics fusion models
+- survival deep learning
 
-原因是第一版项目的重点是范围清晰、结果可信、解释完整，而不是模型复杂。
+The first version should prioritize clear scope, credible results, and complete interpretation over model complexity.
 
-## Python 模型构建需求
+## Python Model-Building Requirements
 
-模型训练应使用 `scikit-learn` 作为第一版主框架。
+Use `scikit-learn` as the main first-version framework.
 
-推荐 Notebook 顺序：
+Recommended notebook order:
 
-1. `01_prepare_coad_data.ipynb`：读取数据库，生成特征矩阵和标签。
-2. `02_train_baseline_models.ipynb`：训练 logistic regression、random forest、linear SVM。
-3. `03_evaluate_models.ipynb`：输出指标、混淆矩阵、ROC/PR 曲线。
-4. `04_interpret_genes.ipynb`：提取重要基因并整理解释表。
-5. `05_xena_toil_extension.ipynb`：第二阶段使用 TCGA-GTEx Toil 数据时再创建。
+1. `01_prepare_coad_data.ipynb`: read the database and generate the feature matrix and labels.
+2. `02_train_baseline_models.ipynb`: train logistic regression, random forest, and linear SVM.
+3. `03_evaluate_models.ipynb`: output metrics, confusion matrix, ROC curve, and PR curve.
+4. `04_interpret_genes.ipynb`: extract important genes and prepare interpretation tables.
+5. `05_xena_toil_extension.ipynb`: create only when Stage 2 TCGA-GTEx Toil data is used.
 
-推荐 Python 模块：
+Recommended Python modules:
 
 ```text
 /workspace/coad-predictor-model/src/
-  data.py                    数据库读取、标签构建、特征矩阵生成
-  preprocessing.py           log2 转换、过滤、标准化、拆分
-  train.py                   模型训练和参数配置
-  evaluate.py                指标、图表和评估表
-  interpret.py               特征重要性和关键基因解释
+  data.py                    database reads, label construction, feature matrix generation
+  preprocessing.py           log2 transformation, filtering, scaling, splitting
+  train.py                   model training and parameter configuration
+  evaluate.py                metrics, plots, and evaluation tables
+  interpret.py               feature importance and key-gene interpretation
 ```
 
-第一版训练流程：
+First-version training workflow:
 
-1. 读取 `coad_tpm_log2_features.parquet` 和 `coad_tumor_normal_labels.csv`。
-2. 按 `case_submitter_id` 做分组，避免同一患者样本同时进入训练集和测试集。
-3. 默认使用 `test_size=0.2`、`random_state=42` 做 stratified split；如改用 cross-validation，需要在报告中说明。
-4. 在训练集内部完成标准化、方差过滤和可选特征选择。
-5. 使用 `class_weight="balanced"` 或等价策略处理 tumor/normal 类别不平衡。
-6. 训练 logistic regression、random forest、linear SVM。
-7. 保存模型、指标和图表。
+1. Read `coad_tpm_log2_features.parquet` and `coad_tumor_normal_labels.csv`.
+2. Group by `case_submitter_id` to prevent samples from the same patient entering both train and test.
+3. Use `test_size=0.2` and `random_state=42` for stratified split by default. If cross-validation is used, describe it in the report.
+4. Complete scaling, variance filtering, and optional feature selection inside the training set.
+5. Use `class_weight="balanced"` or an equivalent strategy for tumor/normal imbalance.
+6. Train logistic regression, random forest, and linear SVM.
+7. Save models, metrics, and figures.
 
-建议保存的模型产物：
+Suggested saved artifacts:
 
 ```text
 /workspace/coad-predictor-model/models/
@@ -555,166 +541,166 @@ JOIN coad_patients c
   model_run_notes.md
 ```
 
-模型构建验收标准：
+Model-building acceptance criteria:
 
-- Notebook 从头运行可以复现特征矩阵、模型和指标。
-- 模型训练过程使用固定 `random_state`，默认 `42`。
-- 训练集和测试集样本 ID 被保存，便于复查。
-- 指标表包含 tumor 和 normal 两类的 precision/recall。
-- 重要基因表包含 gene symbol、importance score、方向和中英文混合简短解释。
+- Notebooks can be run from the beginning to reproduce the feature matrix, models, and metrics.
+- Training uses a fixed `random_state`, defaulting to `42`.
+- Train and test sample IDs are saved for review.
+- The metrics table includes precision and recall for both tumor and normal.
+- The important-gene table includes gene symbol, importance score, direction, and a short English explanation.
 
-## 评估需求
+## Evaluation Requirements
 
-COAD tumor/normal 分类至少报告：
+COAD tumor/normal classification must report at least:
 
-- accuracy。
-- F1。
-- ROC-AUC。
-- PR-AUC。
-- confusion matrix。
-- tumor precision/recall。
-- normal precision/recall。
-- balanced accuracy。
+- accuracy
+- F1
+- ROC-AUC
+- PR-AUC
+- confusion matrix
+- tumor precision/recall
+- normal precision/recall
+- balanced accuracy
 
-必须特别关注：
+Special attention:
 
-- normal 样本数量少，normal recall 很重要。
-- 如果模型把多数样本都预测为 tumor，accuracy 可能看起来不低，但模型并不可靠。
-- 交叉验证需要使用 stratified split 或类似策略。
+- Normal samples are few, so normal recall is important.
+- If the model predicts most samples as tumor, accuracy may look acceptable while the model remains unreliable.
+- Cross-validation should use stratified split or a comparable strategy.
 
-高突变负荷或分期扩展任务至少报告：
+High mutation burden or stage-extension tasks must report at least:
 
-- accuracy。
-- macro F1。
-- confusion matrix。
-- 每个类别的 precision/recall。
-- 标签定义和阈值说明。
+- accuracy
+- macro F1
+- confusion matrix
+- precision/recall for each class
+- label definitions and threshold descriptions
 
-## 结果解释需求
+## Result Interpretation Requirements
 
-结果解释是本项目用于申请展示时最重要的部分之一。
+Result interpretation is one of the most important parts of this project for application presentation.
 
-需要完成：
+Required:
 
-- 找出对 COAD tumor/normal 预测贡献较大的基因。
-- 使用 logistic regression coefficient、feature importance 或 SHAP 解释模型。
-- 查询关键基因是否与结肠癌、肠上皮、细胞增殖、WNT pathway、DNA repair、免疫反应、肿瘤微环境等方向相关。
-- 将模型结果和已有 COAD 报告中的突变、分期或多组学观察进行关联讨论。
+- Identify genes that contribute strongly to COAD tumor/normal prediction.
+- Interpret models using logistic regression coefficients, feature importance, or SHAP.
+- Check whether key genes relate to colon cancer, intestinal epithelium, cell proliferation, WNT pathway, DNA repair, immune response, tumor microenvironment, or similar topics.
+- Discuss model results alongside existing COAD report observations about mutation, stage, or multi-omics data.
 
-推荐展示方式：
+Recommended presentation assets:
 
-- COAD 样本构成表。
-- tumor/normal 混淆矩阵。
-- ROC 曲线和 PR 曲线。
-- PCA/UMAP 样本分布图。
-- 重要基因表。
-- 关键基因的中英文解释表。
+- COAD sample composition table.
+- tumor/normal confusion matrix.
+- ROC and PR curves.
+- PCA/UMAP sample distribution plot.
+- important-gene table.
+- key-gene explanation table.
 
-## 项目交付物
+## Deliverables
 
-第一阶段应交付：
+Stage 1 deliverables:
 
-- COAD 数据处理说明。
-- COAD tumor/normal 特征矩阵构建脚本或 Notebook。
-- 一个 baseline tumor/normal 模型。
-- 模型评估报告。
-- 关键基因解释表。
-- 面向大学申请活动描述的项目摘要。
+- COAD data-processing notes.
+- COAD tumor/normal feature matrix construction script or notebook.
+- A baseline tumor/normal model.
+- Model evaluation report.
+- Key-gene interpretation table.
+- A project summary suitable for college application activity descriptions.
 
-第二阶段应交付：
+Stage 2 deliverables:
 
-- UCSC Xena TCGA-GTEx Toil 数据下载和筛选记录。
-- TCGA-COAD 与 GTEx colon normal 的样本映射表。
-- 第二阶段 tumor/normal 特征矩阵。
-- 第二阶段分类模型。
-- dataset-source confounding 检查结果。
-- 第二阶段模型报告。
+- UCSC Xena TCGA-GTEx Toil download and filtering record.
+- TCGA-COAD to GTEx colon normal sample mapping table.
+- Stage 2 tumor/normal feature matrix.
+- Stage 2 classification model.
+- Dataset-source confounding check results.
+- Stage 2 model report.
 
-## 申请展示角度
+## Application Presentation Angle
 
-这个项目适合强调：
+The project should emphasize:
 
-- 将一个过大的医学 AI 想法收窄为 COAD 结肠癌范围内的可验证科学问题。
-- 使用公开癌症数据完成从数据清洗到模型解释的完整流程。
-- 先用 TCGA-COAD 做基础模型，再用 TCGA-GTEx Toil 引入更强正常对照。
-- 理解样本不平衡、数据来源混杂和临床解释边界。
-- 不夸大模型临床意义，而是强调 research-only 的探索性质。
+- Narrowing an overly broad medical AI idea into a verifiable scientific question within COAD colon cancer.
+- Using public cancer data for a complete workflow from data cleaning to model interpretation.
+- Building a baseline with TCGA-COAD first, then adding stronger normal controls from TCGA-GTEx Toil.
+- Understanding sample imbalance, dataset-source confounding, and clinical-interpretation boundaries.
+- Avoiding exaggerated clinical claims and presenting the model as research-only.
 
-建议在文书或活动描述中避免：
+Avoid these phrases:
 
-- “我做了一个可以预测癌症的系统”。
-- “输入一个人的序列就可以判断是否会得癌症”。
-- “模型可以诊断结肠癌”。
-- “模型可以识别所有癌症”。
+- "I built a system that can predict cancer."
+- "Entering a person's sequence can determine whether they will develop cancer."
+- "The model can diagnose colon cancer."
+- "The model can identify all cancers."
 
-建议使用：
+Prefer these phrases:
 
-- “我基于 TCGA-COAD 基因表达数据建立了结肠癌肿瘤/正常分类模型。”
-- “我比较了多种机器学习方法，并重点处理了肿瘤样本和正常样本不平衡的问题。”
-- “我分析了模型中的重要基因，并结合结肠癌生物学背景进行解释。”
-- “我进一步计划使用 UCSC Xena TCGA-GTEx Toil 数据验证模型是否受到数据来源差异影响。”
+- "I built a colon cancer tumor/normal classifier using TCGA-COAD gene expression data."
+- "I compared several machine learning methods and focused on the imbalance between tumor and normal samples."
+- "I analyzed important genes from the model and interpreted them in the context of colon cancer biology."
+- "I plan to use UCSC Xena TCGA-GTEx Toil data to test whether the model is affected by dataset-source differences."
 
-## 里程碑
+## Milestones
 
-### 里程碑 1：确认 COAD 数据入口
+### Milestone 1: Confirm COAD Data Entry Points
 
-- 确认 `bio_tcga` 中用于 COAD 癌症样本的表和字段。
-- 确认 `tcga_coad` 中用于 COAD 正常样本的表和字段。
-- 确认两个 schema 中可对齐的 gene ID、gene symbol 和表达/测序特征。
-- 确认 `source_schema` 和 `label` 映射规则：`bio_tcga` 为 tumor，`tcga_coad` 为 normal。
+- Confirm the tables and fields in `bio_tcga` used for COAD cancer samples.
+- Confirm the tables and fields in `tcga_coad` used for COAD normal samples.
+- Confirm alignable gene IDs, gene symbols, and expression/sequencing features across both schemas.
+- Confirm `source_schema` and `label` mapping rules: `bio_tcga` means tumor, `tcga_coad` means normal.
 
-### 里程碑 2：完成 COAD baseline
+### Milestone 2: Complete COAD Baseline
 
-- 构建 COAD tumor/normal 标签表。
-- 构建 `log2(TPM + 1)` 特征矩阵。
-- 完成 train/test split 或 stratified cross-validation。
-- 训练 logistic regression、random forest 或 linear SVM。
-- 输出第一版指标和混淆矩阵。
+- Build the COAD tumor/normal label table.
+- Build the `log2(TPM + 1)` feature matrix.
+- Complete train/test split or stratified cross-validation.
+- Train logistic regression, random forest, or linear SVM.
+- Output the first metrics and confusion matrix.
 
-### 里程碑 3：完成 COAD 解释分析
+### Milestone 3: Complete COAD Interpretation Analysis
 
-- 提取重要基因。
-- 查询关键基因的结肠癌相关背景。
-- 生成解释表和可视化图。
-- 将结果与已有 COAD 多组学报告衔接。
+- Extract important genes.
+- Research colon-cancer-related background for key genes.
+- Generate interpretation tables and visualizations.
+- Connect the results to the existing COAD multi-omics report.
 
-### 里程碑 4：扩展到 TCGA-GTEx Toil
+### Milestone 4: Extend To TCGA-GTEx Toil
 
-- 下载 UCSC Xena TCGA-GTEx Toil 数据。
-- 筛选 `bio_tcga` COAD tumor、`tcga_coad` normal 和 GTEx colon normal 样本。
-- 构建第二阶段 tumor/normal 数据集。
-- 训练第二阶段模型。
-- 检查 TCGA vs GTEx 数据来源混杂。
+- Download UCSC Xena TCGA-GTEx Toil data.
+- Select `bio_tcga` COAD tumor, `tcga_coad` normal, and GTEx colon normal samples.
+- Build the Stage 2 tumor/normal dataset.
+- Train the Stage 2 model.
+- Check TCGA-versus-GTEx dataset-source confounding.
 
-### 里程碑 5：形成申请展示材料
+### Milestone 5: Build Application Materials
 
-- 整理项目摘要。
-- 整理方法流程图。
-- 整理结果图表。
-- 整理限制和未来工作。
+- Prepare the project summary.
+- Prepare the method flow diagram.
+- Prepare result figures and tables.
+- Prepare limitations and future work.
 
-## 风险和限制
+## Risks And Limitations
 
-- 第一阶段 normal 样本来自 `tcga_coad`，tumor 样本来自 `bio_tcga`，两个来源的处理流程可能不同。
-- COAD 单癌种范围内样本量有限，模型更容易过拟合。
-- `tcga_coad` 中正常样本的来源和定义需要单独记录，不应默认等同于完全健康人群结肠组织。
-- GTEx normal 与 TCGA tumor 来自不同项目，第二阶段存在强数据来源混杂风险。
-- 重要基因解释只能说明模型关联，不能证明生物学因果。
-- 本项目是 research-only，不能用于临床诊断。
+- In Stage 1, normal samples come from `tcga_coad` while tumor samples come from `bio_tcga`; the two sources may use different processing pipelines.
+- A single-cancer COAD scope has limited sample size, making overfitting more likely.
+- The source and definition of normal samples in `tcga_coad` must be recorded separately; they should not be assumed to represent fully healthy general-population colon tissue.
+- GTEx normal and TCGA tumor samples come from different projects, so Stage 2 has a strong dataset-source confounding risk.
+- Important-gene interpretation shows model association, not biological causality.
+- This project is research-only and cannot be used for clinical diagnosis.
 
-## 待确认问题
+## Open Questions
 
-- 第一阶段是否只使用 RNA-seq TPM，还是同时加入 MC3 突变特征？
-- 第一版 normal 类样本是否只用 `tcga_coad`，还是提前加入 GTEx colon normal？
-- 特征数量是否先控制在 top variable genes，还是使用全部 protein-coding genes？
-- 关键基因解释是否需要单独生成中文术语表，延续已有 COAD 报告风格？
-- 第二阶段 GTEx colon normal 是否同时使用 Colon - Transverse 和 Colon - Sigmoid？
-- 是否需要把已有 COAD 联合分析报告作为模型报告的背景章节？
+- Should Stage 1 use only RNA-seq TPM, or also add MC3 mutation features?
+- Should the first normal class use only `tcga_coad`, or add GTEx colon normal earlier?
+- Should the feature count first be limited to top variable genes, or should all protein-coding genes be used?
+- Should the key-gene interpretation generate a separate glossary?
+- Should Stage 2 use both Colon - Transverse and Colon - Sigmoid from GTEx?
+- Should the existing COAD integrated analysis report become a background chapter in the model report?
 
-## 参考数据源
+## Reference Data Sources
 
-- TCGA 项目介绍：https://www.cancer.gov/ccg/research/genome-sequencing/tcga
-- GDC Data Portal 文档：https://docs.gdc.cancer.gov/Encyclopedia/pages/GDC_Data_Portal/
-- UCSC Xena：https://xena.ucsc.edu/
-- UCSC Xena data pages：https://xenabrowser.net/datapages/
-- UCSC Toil RNA-seq recompute Zenodo 长期记录：https://zenodo.org/records/10944168
+- TCGA project overview: https://www.cancer.gov/ccg/research/genome-sequencing/tcga
+- GDC Data Portal documentation: https://docs.gdc.cancer.gov/Encyclopedia/pages/GDC_Data_Portal/
+- UCSC Xena: https://xena.ucsc.edu/
+- UCSC Xena data pages: https://xenabrowser.net/datapages/
+- UCSC Toil RNA-seq recompute Zenodo long-term record: https://zenodo.org/records/10944168

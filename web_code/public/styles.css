@@ -359,11 +359,32 @@ body::before {
   background: #fffdf8;
 }
 
+.analysis-tile.report-tile {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.analysis-tile.report-tile:hover {
+  border-color: var(--moss);
+}
+
 .analysis-tile strong {
   display: block;
   margin-top: 18px;
   font-size: 2.2rem;
   color: var(--moss-deep);
+}
+
+.analysis-tile.report-tile strong,
+.analysis-tile.report-list-tile strong {
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+.analysis-tile.report-list-tile a {
+  color: var(--moss-deep);
+  font-weight: 700;
 }
 
 @media (max-width: 920px) {
