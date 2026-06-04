@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cancer Predictor Project"
+  short_description: "Project rules for cancer predictor work"
+  default_prompt: "Use $cancer-predictor-project to follow my cancer predictor project conventions while editing code, notebooks, reports, or web files."
