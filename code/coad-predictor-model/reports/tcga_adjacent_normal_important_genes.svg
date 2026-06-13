@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="760" viewBox="0 0 980 760">
+<rect width="100%" height="100%" fill="white"/>
+<text x="490.0" y="30" font-size="18" font-family="Arial" text-anchor="middle" font-weight="bold">Top important genes by model</text>
+<text x="40" y="70" font-size="14" font-family="Arial" text-anchor="start" font-weight="bold">logistic_regression</text>
+<rect x="-30.0" y="80" width="280.0" height="14" fill="#4C78A8"/>
+<line x1="250" y1="76" x2="250" y2="96" stroke="#333"/>
+<text x="40" y="92" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">OTOP3</text>
+<text x="550" y="92" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.07759</text>
+<rect x="-26.703631627378456" y="98" width="276.70363162737846" height="14" fill="#4C78A8"/>
+<line x1="250" y1="94" x2="250" y2="114" stroke="#333"/>
+<text x="40" y="110" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">DHRS7C</text>
+<text x="550" y="110" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.07668</text>
+<rect x="250" y="116" width="255.00431540380023" height="14" fill="#F58518"/>
+<line x1="250" y1="112" x2="250" y2="132" stroke="#333"/>
+<text x="40" y="128" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">PRL</text>
+<text x="550" y="128" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.07066</text>
+<rect x="4.58227863649077" y="134" width="245.41772136350923" height="14" fill="#4C78A8"/>
+<line x1="250" y1="130" x2="250" y2="150" stroke="#333"/>
+<text x="40" y="146" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">DAO</text>
+<text x="550" y="146" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.06801</text>
+<rect x="5.107421402454094" y="152" width="244.8925785975459" height="14" fill="#4C78A8"/>
+<line x1="250" y1="148" x2="250" y2="168" stroke="#333"/>
+<text x="40" y="164" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">MMP27</text>
+<text x="550" y="164" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.06786</text>
+<rect x="8.53566362916942" y="170" width="241.46433637083058" height="14" fill="#4C78A8"/>
+<line x1="250" y1="166" x2="250" y2="186" stroke="#333"/>
+<text x="40" y="182" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">FAM180B</text>
+<text x="550" y="182" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.06691</text>
+<rect x="250" y="188" width="228.05185589092292" height="14" fill="#F58518"/>
+<line x1="250" y1="184" x2="250" y2="204" stroke="#333"/>
+<text x="40" y="200" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">RIMS1</text>
+<text x="550" y="200" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.06319</text>
+<rect x="250" y="206" width="221.4243247933591" height="14" fill="#F58518"/>
+<line x1="250" y1="202" x2="250" y2="222" stroke="#333"/>
+<text x="40" y="218" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">CCKAR</text>
+<text x="550" y="218" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.06136</text>
+<rect x="33.93442944762833" y="224" width="216.06557055237167" height="14" fill="#4C78A8"/>
+<line x1="250" y1="220" x2="250" y2="240" stroke="#333"/>
+<text x="40" y="236" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">VEGFD</text>
+<text x="550" y="236" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.05987</text>
+<rect x="33.99094657805148" y="242" width="216.00905342194852" height="14" fill="#4C78A8"/>
+<line x1="250" y1="238" x2="250" y2="258" stroke="#333"/>
+<text x="40" y="254" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">OTOP2</text>
+<text x="550" y="254" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.05986</text>
+<text x="40" y="292" font-size="14" font-family="Arial" text-anchor="start" font-weight="bold">random_forest</text>
+<rect x="250" y="302" width="280.0" height="14" fill="#F58518"/>
+<line x1="250" y1="298" x2="250" y2="318" stroke="#333"/>
+<text x="40" y="314" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">LGI1</text>
+<text x="550" y="314" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.02358</text>
+<rect x="250" y="320" width="276.6341879870679" height="14" fill="#F58518"/>
+<line x1="250" y1="316" x2="250" y2="336" stroke="#333"/>
+<text x="40" y="332" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">PPM1H</text>
+<text x="550" y="332" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.02329</text>
+<rect x="250" y="338" width="170.23912377922832" height="14" fill="#F58518"/>
+<line x1="250" y1="334" x2="250" y2="354" stroke="#333"/>
+<text x="40" y="350" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">HPSE2</text>
+<text x="550" y="350" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01433</text>
+<rect x="250" y="356" width="167.97259101502001" height="14" fill="#F58518"/>
+<line x1="250" y1="352" x2="250" y2="372" stroke="#333"/>
+<text x="40" y="368" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">IL6R</text>
+<text x="550" y="368" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01414</text>
+<rect x="250" y="374" width="159.3403930837793" height="14" fill="#F58518"/>
+<line x1="250" y1="370" x2="250" y2="390" stroke="#333"/>
+<text x="40" y="386" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">DDX56</text>
+<text x="550" y="386" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01342</text>
+<rect x="250" y="392" width="155.1985783050435" height="14" fill="#F58518"/>
+<line x1="250" y1="388" x2="250" y2="408" stroke="#333"/>
+<text x="40" y="404" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">BRINP3</text>
+<text x="550" y="404" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01307</text>
+<rect x="250" y="410" width="124.60489706074485" height="14" fill="#F58518"/>
+<line x1="250" y1="406" x2="250" y2="426" stroke="#333"/>
+<text x="40" y="422" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">CEMIP</text>
+<text x="550" y="422" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01049</text>
+<rect x="250" y="428" width="121.47020681275625" height="14" fill="#F58518"/>
+<line x1="250" y1="424" x2="250" y2="444" stroke="#333"/>
+<text x="40" y="440" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">KLHL35</text>
+<text x="550" y="440" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01023</text>
+<rect x="250" y="446" width="120.39151312857341" height="14" fill="#F58518"/>
+<line x1="250" y1="442" x2="250" y2="462" stroke="#333"/>
+<text x="40" y="458" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">ENC1</text>
+<text x="550" y="458" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01014</text>
+<rect x="250" y="464" width="119.09827610628098" height="14" fill="#F58518"/>
+<line x1="250" y1="460" x2="250" y2="480" stroke="#333"/>
+<text x="40" y="476" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">CLEC3B</text>
+<text x="550" y="476" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01003</text>
+<text x="40" y="514" font-size="14" font-family="Arial" text-anchor="start" font-weight="bold">linear_svm</text>
+<rect x="-30.0" y="524" width="280.0" height="14" fill="#4C78A8"/>
+<line x1="250" y1="520" x2="250" y2="540" stroke="#333"/>
+<text x="40" y="536" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">OTOP3</text>
+<text x="550" y="536" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.01271</text>
+<rect x="-28.848809868415913" y="542" width="278.8488098684159" height="14" fill="#4C78A8"/>
+<line x1="250" y1="538" x2="250" y2="558" stroke="#333"/>
+<text x="40" y="554" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">DHRS7C</text>
+<text x="550" y="554" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.01265</text>
+<rect x="250" y="560" width="255.9505167583121" height="14" fill="#F58518"/>
+<line x1="250" y1="556" x2="250" y2="576" stroke="#333"/>
+<text x="40" y="572" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">PRL</text>
+<text x="550" y="572" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01161</text>
+<rect x="4.6827636795999865" y="578" width="245.3172363204" height="14" fill="#4C78A8"/>
+<line x1="250" y1="574" x2="250" y2="594" stroke="#333"/>
+<text x="40" y="590" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">MMP27</text>
+<text x="550" y="590" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.01113</text>
+<rect x="5.585044259219217" y="596" width="244.41495574078078" height="14" fill="#4C78A8"/>
+<line x1="250" y1="592" x2="250" y2="612" stroke="#333"/>
+<text x="40" y="608" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">DAO</text>
+<text x="550" y="608" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.01109</text>
+<rect x="9.283918131554088" y="614" width="240.7160818684459" height="14" fill="#4C78A8"/>
+<line x1="250" y1="610" x2="250" y2="630" stroke="#333"/>
+<text x="40" y="626" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">FAM180B</text>
+<text x="550" y="626" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.01092</text>
+<rect x="250" y="632" width="240.01357500534212" height="14" fill="#F58518"/>
+<line x1="250" y1="628" x2="250" y2="648" stroke="#333"/>
+<text x="40" y="644" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">RIMS1</text>
+<text x="550" y="644" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01089</text>
+<rect x="250" y="650" width="227.55134283319998" height="14" fill="#F58518"/>
+<line x1="250" y1="646" x2="250" y2="666" stroke="#333"/>
+<text x="40" y="662" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">CCKAR</text>
+<text x="550" y="662" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">0.01033</text>
+<rect x="35.57756564157353" y="668" width="214.42243435842647" height="14" fill="#4C78A8"/>
+<line x1="250" y1="664" x2="250" y2="684" stroke="#333"/>
+<text x="40" y="680" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">VEGFD</text>
+<text x="550" y="680" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.00973</text>
+<rect x="36.968029419536435" y="686" width="213.03197058046356" height="14" fill="#4C78A8"/>
+<line x1="250" y1="682" x2="250" y2="702" stroke="#333"/>
+<text x="40" y="698" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">SLC17A7</text>
+<text x="550" y="698" font-size="11" font-family="Arial" text-anchor="start" font-weight="normal">-0.009666</text>
+</svg>

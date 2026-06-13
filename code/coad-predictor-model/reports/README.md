@@ -10,6 +10,8 @@ Expected generated files:
 - `roc_curve.png`
 - `pr_curve.png`
 - `model_report.md`
+- `model_report.ipynb`
+- `tcga_adjacent_normal_model_report.ipynb`
+- `tcga_adjacent_normal_*.svg`
 
 These generated outputs are local research artifacts and are not committed by default.
-

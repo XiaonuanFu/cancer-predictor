@@ -30,6 +30,12 @@ Outputs are written under:
 
 ## Pipeline Steps
 
+For a single notebook workflow, open:
+
+```text
+notebooks/00_coad_predictor_full_workflow.ipynb
+```
+
 ```bash
 python3 -m src.pipeline prepare
 python3 -m src.pipeline train

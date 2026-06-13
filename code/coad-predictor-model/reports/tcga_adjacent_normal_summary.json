@@ -1,0 +1,14 @@
+{
+  "tumor_samples": 471,
+  "normal_samples": 41,
+  "shared_genes": 19938,
+  "model_genes": 19486,
+  "tumor_source": "local GDC TCGA-COAD STAR counts Primary Tumor tpm_unstranded",
+  "normal_source": "local GDC TCGA-COAD STAR counts Solid Tissue Normal tpm_unstranded",
+  "notes": [
+    "This report uses only TCGA COAD local STAR counts files.",
+    "The adjacent normal class has only 41 samples.",
+    "The train/test split is stratified by label and grouped by case_submitter_id.",
+    "Use balanced_accuracy, normal_recall, and confusion matrices instead of accuracy alone."
+  ]
+}

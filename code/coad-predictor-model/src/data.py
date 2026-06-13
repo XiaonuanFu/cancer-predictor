@@ -62,44 +62,54 @@ def read_coad_tumor_samples() -> pd.DataFrame:
     return samples
 
 
-def read_normal_metadata() -> pd.DataFrame:
+def read_gtex_normal_metadata() -> pd.DataFrame:
     query = """
-    SELECT DISTINCT
-      f.file_id::text AS file_id,
-      f.case_submitter_id,
-      f.sample_submitter_id,
-      f.sample_type
-    FROM tcga_coad.gdc_files f
-    WHERE f.sample_type = 'Solid Tissue Normal'
-    ORDER BY f.sample_submitter_id;
+    SELECT
+      sample_id,
+      patient AS case_submitter_id,
+      sample_id AS sample_submitter_id,
+      body_site_detail AS sample_type,
+      primary_site,
+      gender,
+      cohort
+    FROM toil_gtex_colon_normal.samples
+    WHERE body_site_detail IN ('Colon - Sigmoid', 'Colon - Transverse')
+    ORDER BY sample_id;
     """
     with sqlalchemy_engine().connect() as conn:
         samples = pd.read_sql_query(text(query), conn)
     samples["sample_id"] = samples["sample_submitter_id"]
-    samples["source_schema"] = "tcga_coad"
-    samples["source_table"] = "star_counts_with_metadata"
+    samples["source_schema"] = "toil_gtex_colon_normal"
+    samples["source_table"] = "expression_log2_tpm"
     samples["label"] = "normal"
     return samples
 
 
-def read_normal_matrix() -> pd.DataFrame:
+def read_gtex_normal_matrix() -> pd.DataFrame:
     query = """
+    WITH tumor_genes AS (
+      SELECT DISTINCT split_part(feature_id, '|', 1) AS gene_symbol
+      FROM bio_tcga.matrix_rnaseq_gene_expression
+      WHERE split_part(feature_id, '|', 1) <> '?'
+    )
     SELECT
-      sample_submitter_id AS sample_id,
-      gene_name,
-      tpm_unstranded
-    FROM tcga_coad.star_counts_with_metadata
-    WHERE sample_type = 'Solid Tissue Normal'
-      AND gene_type = 'protein_coding'
-      AND gene_name IS NOT NULL
-      AND tpm_unstranded IS NOT NULL;
+      e.sample_id,
+      g.gene_symbol,
+      GREATEST(power(2.0, e.log2_tpm) - 0.001, 0.0) AS expression_value
+    FROM toil_gtex_colon_normal.expression_log2_tpm e
+    JOIN toil_gtex_colon_normal.genes g
+      ON g.gene_id = e.gene_id
+    JOIN tumor_genes tg
+      ON tg.gene_symbol = g.gene_symbol
+    WHERE g.gene_symbol IS NOT NULL
+      AND e.log2_tpm IS NOT NULL;
     """
     with sqlalchemy_engine().connect() as conn:
         long_df = pd.read_sql_query(text(query), conn)
     matrix = long_df.pivot_table(
         index="sample_id",
-        columns="gene_name",
-        values="tpm_unstranded",
+        columns="gene_symbol",
+        values="expression_value",
         aggfunc="mean",
     )
     matrix.index.name = "sample_id"
@@ -178,8 +188,8 @@ def build_prepared_data() -> PreparedData:
     config.ensure_dirs()
 
     tumor_samples = read_coad_tumor_samples()
-    normal_samples = read_normal_metadata()
-    normal_matrix = read_normal_matrix()
+    normal_samples = read_gtex_normal_metadata()
+    normal_matrix = read_gtex_normal_matrix()
     tumor_symbols = read_tumor_gene_symbols()
 
     normal_genes = set(normal_matrix.columns)
@@ -212,9 +222,11 @@ def build_prepared_data() -> PreparedData:
         "normal_samples": int((labels["label"] == "normal").sum()),
         "shared_genes": len(shared_genes),
         "tumor_source": "bio_tcga.matrix_rnaseq_gene_expression",
-        "normal_source": "tcga_coad.star_counts_with_metadata.tpm_unstranded",
+        "normal_source": "toil_gtex_colon_normal.expression_log2_tpm",
         "notes": [
-            "Tumor and normal expression data come from different schemas/pipelines.",
+            "Tumor data comes from local TCGA PanCan Atlas tables; normal data comes from UCSC Xena Toil GTEx colon samples.",
+            "GTEx normal values were converted from Xena log2 TPM scale back to linear expression before the shared preprocessing log2(x+1) step.",
+            "Tumor and normal expression data still come from different cohorts, so source/cohort effects remain possible.",
             "Raw database tables and source files are not modified.",
             "Only shared gene symbols are used.",
         ],

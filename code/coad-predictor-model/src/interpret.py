@@ -75,6 +75,8 @@ def write_model_report(metrics: pd.DataFrame, important: pd.DataFrame) -> None:
     )
     metrics_md = to_markdown_table(metrics.drop(columns=["confusion_matrix"], errors="ignore"))
     genes_md = to_markdown_table(top_genes)
+    notes = summary.get("notes", [])
+    notes_md = "\n".join(f"- {note}" for note in notes) if notes else "- Source notes unavailable."
 
     report = f"""# COAD Tumor vs Normal RNA Expression Model Report
 
@@ -82,7 +84,7 @@ def write_model_report(metrics: pd.DataFrame, important: pd.DataFrame) -> None:
 
 This is an exploratory, research-only COAD tumor vs normal classifier.
 
-This report uses RNA expression to build a COAD colon cancer tumor/normal binary classifier. Tumor samples come from `bio_tcga`, while normal samples come from `tcga_coad`; the two sources may have different processing pipelines, so results must not be interpreted as a clinical diagnostic model.
+This report uses RNA expression to build a COAD colon cancer tumor/normal binary classifier. Tumor samples come from local TCGA PanCan Atlas tables, while normal samples come from UCSC Xena Toil GTEx colon tissue. The two groups come from different cohorts, so results must not be interpreted as a clinical diagnostic model.
 
 ## Data
 
@@ -93,6 +95,10 @@ This report uses RNA expression to build a COAD colon cancer tumor/normal binary
 - Tumor source: {summary.get("tumor_source", "unknown")}
 - Normal source: {summary.get("normal_source", "unknown")}
 - Preprocessing: `log2(x + 1)`, low-variance filtering, median imputation inside each model Pipeline, class imbalance handled with `class_weight='balanced'`.
+
+## Source Notes
+
+{notes_md}
 
 ## Metrics
 
@@ -105,7 +111,8 @@ This report uses RNA expression to build a COAD colon cancer tumor/normal binary
 ## Caveats
 
 - This is research-only and not for clinical diagnosis.
-- Tumor and normal data come from different schemas/pipelines.
+- Tumor and normal data come from different cohorts, so cohort/source effects may make the task easier than a real clinical setting.
+- Very high scores should be treated as a warning to check external validation, not as proof that the model is ready for diagnosis.
 - Important genes are predictive features, not proven causal cancer drivers.
 - Further literature review and external validation are required.
 """
