@@ -6,7 +6,6 @@ import pickle
 from dataclasses import dataclass
 from pathlib import Path
 
-import nbformat as nbf
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -425,15 +424,16 @@ def markdown_table(df: pd.DataFrame) -> str:
 
 
 def build_notebook(summary: dict, metrics: pd.DataFrame, important: pd.DataFrame, split_table: pd.DataFrame, plot_paths: dict):
-    nb = nbf.v4.new_notebook()
-    nb.metadata = {
-        "kernelspec": {"display_name": "Python 3 (ipykernel)", "language": "python", "name": "python3"},
-        "language_info": {"name": "python", "pygments_lexer": "ipython3"},
-    }
     cells = []
 
     def md(text: str):
-        cells.append(nbf.v4.new_markdown_cell(text.strip() + "\n"))
+        cells.append(
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": (text.strip() + "\n").splitlines(keepends=True),
+            }
+        )
 
     metric_cols = [
         "model",
@@ -462,12 +462,46 @@ def build_notebook(summary: dict, metrics: pd.DataFrame, important: pd.DataFrame
 
 This report trains and compares tumor vs adjacent normal models using only TCGA COAD data from `tcga_coad` local files.
 
-这份报告只使用 TCGA COAD 数据：Primary Tumor（原发肿瘤）和 Solid Tissue Normal（癌旁正常组织 / adjacent normal）。它不会覆盖原来的 GTEx normal report.
+这份报告只使用 TCGA COAD 数据：Primary Tumor（原发肿瘤）和 Solid Tissue Normal（癌旁正常组织，也叫 adjacent normal / 癌旁正常）。它不会覆盖原来的 GTEx normal report（GTEx 正常组织报告）。
 
-**Main point / 重点：** this is a stricter check than TCGA tumor + GTEx normal, because both classes come from the same TCGA COAD STAR counts source."""
+**Main point / 重点：** this is a stricter check than TCGA tumor + GTEx normal, because both classes come from the same TCGA COAD STAR counts source.
+
+**Plain-language goal / 通俗目标：** we want to test whether RNA expression (which genes are more or less active / 哪些基因更活跃或更不活跃) can separate colon cancer tumor tissue from nearby normal tissue. This report is for research learning only, not clinical diagnosis (not for deciding whether a patient has cancer / 不能用于临床诊断)."""
+    )
+    md(
+        """## Glossary / 术语表
+
+| term | plain explanation |
+| --- | --- |
+| TCGA | The Cancer Genome Atlas, a large public cancer data project / 大型公共癌症数据项目 |
+| COAD | colon adenocarcinoma, a type of colon cancer / 结肠腺癌，一种结肠癌 |
+| Primary Tumor | the main cancer tissue sample / 原发肿瘤组织样本 |
+| Solid Tissue Normal / adjacent normal | tissue near the tumor that is labeled as normal / 肿瘤旁边标注为正常的组织 |
+| RNA expression | how active each gene is / 每个基因有多活跃 |
+| STAR counts | RNA-seq reads counted by the STAR workflow / 用 STAR 流程统计出来的 RNA 测序读数 |
+| TPM | transcripts per million, a normalized expression value / 一种标准化后的基因表达值 |
+| model | a machine-learning method that learns patterns from data / 从数据里学习规律的方法 |
+| feature | an input variable used by the model, here usually one gene / 模型输入变量，这里通常是一个基因 |
+| label | the answer the model tries to predict, here tumor or normal / 模型要预测的答案，这里是 tumor 或 normal |
+| train/test split | separating data into learning data and checking data / 把数据分成训练用和测试用两部分 |
+| accuracy | overall percent correct / 总体预测正确比例 |
+| balanced_accuracy | average correctness across classes, safer when one class is small / 每个类别正确率的平均值，类别不平衡时更有用 |
+| precision | among samples predicted as one class, how many are truly that class / 被预测为某类的样本中，有多少是真的 |
+| recall | among true samples of one class, how many were found / 真正属于某类的样本中，有多少被找出来 |
+| F1 | a combined score of precision and recall / precision 和 recall 的综合分数 |
+| support | number of test samples in that class / 测试集中该类别的样本数 |
+| confusion matrix | a table comparing true labels and predicted labels / 真实类别和预测类别的对照表 |
+| ROC-AUC | a score for ranking tumor above normal across thresholds / 衡量模型区分 tumor 和 normal 排序能力的分数 |
+| PR-AUC | precision-recall curve area, useful when one class is small / precision-recall 曲线面积，类别少时很有用 |
+| Logistic Regression | a simple linear classification model / 一种简单的线性分类模型 |
+| Random Forest | many decision trees voting together / 很多决策树一起投票的模型 |
+| Linear SVM | a linear model that tries to draw a separating boundary / 尝试画出分类边界的线性模型 |
+| source/cohort effect | differences caused by data source or patient group, not biology / 数据来源或人群差异造成的影响，不一定是生物学差异 |"""
     )
     md(
         f"""## Dataset / 数据集
+
+This section describes the data used by the report. A sample means one tissue file from one patient/sample (一个样本就是一个组织测序文件). A gene means a DNA region that can produce RNA/protein (基因是能产生 RNA 或蛋白的 DNA 区域).
 
 | item | value |
 | --- | --- |
@@ -480,28 +514,76 @@ This report trains and compares tumor vs adjacent normal models using only TCGA 
 
 Notes:
 
-{chr(10).join(f"- {note}" for note in summary['notes'])}"""
+{chr(10).join(f"- {note}" for note in summary['notes'])}
+
+**Important limitation / 重要限制：** there are only {summary['normal_samples']} adjacent normal samples. This is small compared with tumor samples, so one or two mistakes can noticeably change the final score."""
     )
-    md("## Train/Test Split / 训练测试划分\n\n" + markdown_table(split_table))
+    md(
+        """## Train/Test Split / 训练测试划分
+
+The train set is used to teach the model. The test set is held back and used only to check performance. This is like studying with practice questions, then checking yourself with new questions.
+
+训练集用于让模型学习；测试集先藏起来，只在最后检查模型表现。可以理解成先做练习题学习，再用新题测试。
+
+Because normal samples are rare, the test set has only 8 normal samples. That makes the normal-related scores less stable.
+
+因为 normal 样本很少，测试集里只有 8 个 normal；所以 normal 相关分数不太稳定。
+
+"""
+        + markdown_table(split_table)
+    )
     md(
         """## Model Comparison / 模型对比
 
-`balanced_accuracy` is important because the normal class is small. `normal_recall` tells us how many real adjacent normal samples were correctly found.
+This table compares three models. The safest way to read it is not just to look at `accuracy`; also check `balanced_accuracy`, `normal_precision`, `normal_recall`, and `normal_support`.
 
-`balanced_accuracy`（平衡准确率）很重要，因为 normal 类别很小。`normal_recall` 表示真正的癌旁正常样本里，有多少被模型找出来。
+这个表比较三个模型。不要只看 `accuracy`（总体准确率）；还要看 `balanced_accuracy`（平衡准确率）、`normal_precision`（预测为 normal 的样本有多少是真的 normal）、`normal_recall`（真正 normal 有多少被找出来）、`normal_support`（测试集中 normal 的数量）。
+
+How to read this result / 怎么读这个结果：
+
+- Logistic Regression and Linear SVM missed 0 normal samples, but they incorrectly called 6 tumor samples normal. / 逻辑回归和线性 SVM 没漏掉 normal，但把 6 个 tumor 错判成 normal。
+- Random Forest is perfect on this test split, but the normal test set has only 8 samples, so we should not call it clinically perfect. / 随机森林在这次划分中满分，但 normal 测试样本只有 8 个，不能说它临床上完美。
 
 """
         + markdown_table(metrics_display)
     )
-    md(f"## Metric Plot / 指标图\n\n![Metric comparison]({plot_paths['metric_comparison'].name})")
-    md(f"## Confusion Matrices / 混淆矩阵\n\n![Confusion matrix]({plot_paths['confusion_matrix'].name})")
-    md(f"## ROC And PR Curves / ROC 与 PR 曲线\n\n![ROC and PR curves]({plot_paths['roc_pr_curves'].name})")
+    md(
+        f"""## Metric Plot / 指标图
+
+This plot shows the main scores side by side. Taller bars mean better scores. If all bars are near 1.0, the model is doing very well on this test split.
+
+这个图把主要指标放在一起比较。柱子越高，分数越好。如果很多柱子接近 1.0，说明模型在这次测试划分上表现很好。
+
+![Metric comparison]({plot_paths['metric_comparison'].name})"""
+    )
+    md(
+        f"""## Confusion Matrices / 混淆矩阵
+
+A confusion matrix has true labels on one side and predicted labels on the other side. Good predictions appear on the diagonal (top-left and bottom-right). Off-diagonal numbers are mistakes.
+
+混淆矩阵把真实类别和预测类别放在一起。对角线上的数字是预测正确；非对角线上的数字是预测错误。
+
+![Confusion matrix]({plot_paths['confusion_matrix'].name})"""
+    )
+    md(
+        f"""## ROC And PR Curves / ROC 与 PR 曲线
+
+ROC curve shows how well the model separates tumor from normal when the decision threshold changes. PR curve focuses on precision and recall, and is useful when one class has fewer samples.
+
+ROC 曲线展示阈值变化时模型区分 tumor/normal 的能力。PR 曲线关注 precision 和 recall，在 normal 样本少的时候尤其有用。
+
+![ROC and PR curves]({plot_paths['roc_pr_curves'].name})"""
+    )
     md(
         """## Important Genes / 重要基因
 
-These genes are predictive features, not proven causal cancer genes. Use them as candidates for literature review.
+These genes are predictive features, not proven causal cancer genes. A predictive feature means the model used this gene to help separate tumor from normal. A causal gene would mean the gene directly helps cause cancer, which this report does not prove.
 
-这些基因只是模型用来预测的特征，不等于已经证明它们导致癌症。
+这些基因只是模型用来预测的特征，不等于已经证明它们导致癌症。预测特征表示模型用它帮助分类；因果基因表示它直接导致癌症，这份报告不能证明因果。
+
+`higher_tumor_score` means higher expression pushes the model toward tumor. `higher_normal_score` means higher expression pushes the model toward normal. `tree_importance` is the Random Forest importance score.
+
+`higher_tumor_score` 表示这个基因表达更高时，模型更倾向预测 tumor。`higher_normal_score` 表示更倾向预测 normal。`tree_importance` 是随机森林里的重要性分数。
 
 """
         + markdown_table(top_genes[["model", "rank", "gene_symbol", "importance_score", "direction"]])
@@ -514,10 +596,29 @@ This TCGA-only adjacent-normal report is more meaningful than mixing TCGA tumor 
 
 这份 TCGA-only 癌旁正常报告比 TCGA tumor + GTEx normal 更有解释价值，因为 tumor 和 normal 来自同一个 TCGA COAD STAR counts 数据源。但 normal 只有 41 个，所以测试集里的 normal 很少；一个 normal 样本预测错了，分数就会变化很大。
 
-Recommended reading: compare this report with the GTEx report. If GTEx is perfect but TCGA-only is lower, that supports the idea that the GTEx result was partly inflated by source/cohort effects."""
+Recommended reading: compare this report with the GTEx report. If GTEx is perfect but TCGA-only is lower, that supports the idea that the GTEx result was partly inflated by source/cohort effects.
+
+推荐读法：把这份报告和 GTEx 报告放在一起看。如果 GTEx 报告是 100%，但 TCGA-only 报告分数下降，就说明之前的完美结果可能有一部分来自 source/cohort effect（来源/队列效应），而不完全是癌症生物学差异。
+
+Final takeaway / 最终结论：
+
+- This model has research value because it finds expression patterns that separate tumor and adjacent normal tissue. / 这个模型有科研探索价值，因为它找到了区分肿瘤和癌旁正常组织的表达模式。
+- It is not ready for clinical use because the normal sample size is small and external validation is still needed. / 它还不能用于临床，因为 normal 样本太少，还需要外部验证。
+- The most honest result is not “the model is perfect,” but “the model looks strong, and we understand its limitations.” / 最诚实的结论不是“模型完美”，而是“模型很强，但我们知道它的限制”。"""
     )
-    nb.cells = cells
-    nbf.write(nb, REPORTS_DIR / f"{PREFIX}_model_report.ipynb")
+    nb = {
+        "cells": cells,
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3 (ipykernel)", "language": "python", "name": "python3"},
+            "language_info": {"name": "python", "pygments_lexer": "ipython3"},
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    (REPORTS_DIR / f"{PREFIX}_model_report.ipynb").write_text(
+        json.dumps(nb, ensure_ascii=False, indent=1) + "\n",
+        encoding="utf-8",
+    )
 
 
 def sync_outputs(paths: list[Path]) -> None:
