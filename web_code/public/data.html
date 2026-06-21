@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>COAD Data And Model | COAD Cancer Predictor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="page-data">
+    <header class="site-header compact-header">
+      <a class="brand brand-coad" href="/" aria-label="COAD Cancer Predictor home">
+        <span class="brand-mark brand-cluster" aria-hidden="true"><span></span></span>
+        <span><strong><b>COAD</b> Cancer Predictor</strong></span>
+      </a>
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav class="nav" id="primary-nav" aria-label="Primary navigation">
+        <a href="/" data-nav="home">Overview</a>
+        <a href="/data.html#coad-data" data-nav="data">Data</a>
+        <a href="/data.html#model" data-nav="data">Model</a>
+        <a href="/resources.html#sources" data-nav="resources">About</a>
+      </nav>
+      <div class="safe-chip" title="This public site is read-only.">
+        <span aria-hidden="true">Safe</span>
+        <span>Exploratory research only; not for clinical diagnosis.</span>
+      </div>
+    </header>
+
+    <main class="screen-page">
+      <section class="section-band split-section data-screen" id="coad-data">
+        <div class="section-heading screen-heading">
+          <h1>COAD PanCanAtlas Data</h1>
+          <p>Curated from PanCanAtlas (TCGA) for exploratory research.</p>
+        </div>
+        <div class="data-layout">
+          <div>
+            <h2 class="micro-heading">Data type</h2>
+            <div class="choice-stack data-choice-stack" id="data-filters" role="tablist" aria-label="COAD data type filters"></div>
+          </div>
+          <article class="definition-panel data-definition-card" id="data-definition" aria-live="polite"></article>
+          <article class="chart-panel sample-chart-card">
+            <div class="panel-head">
+              <h2>COAD sample counts (RNA expression)</h2>
+              <span>i</span>
+            </div>
+            <div class="sample-summary" id="sample-summary"></div>
+            <div class="sample-bars" id="sample-bars" aria-label="Tumor and normal sample count chart"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-band workflow-section screen-workflow" id="workflow">
+        <div class="section-heading screen-heading">
+          <h2>Analysis Workflow</h2>
+        </div>
+        <div class="workflow-line" id="workflow-line" aria-label="Analysis workflow steps"></div>
+        <article class="workflow-detail" id="workflow-detail" aria-live="polite"></article>
+      </section>
+
+      <section class="section-band model-section screen-model" id="model">
+        <div class="section-heading screen-heading">
+          <h2>Prediction Model</h2>
+          <p>COAD tumor vs normal classification</p>
+        </div>
+        <div class="model-layout">
+          <aside class="model-rail">
+            <h3 class="micro-heading">Models</h3>
+            <div class="choice-stack" id="model-tabs" role="tablist" aria-label="Model choices"></div>
+            <h3 class="micro-heading view-label">View</h3>
+            <div class="choice-stack compact" id="model-views" role="tablist" aria-label="Model views">
+              <button type="button" class="active" data-view="metrics">Metrics</button>
+              <button type="button" data-view="matrix">Confusion matrix</button>
+              <button type="button" data-view="features">Important features</button>
+            </div>
+          </aside>
+          <div class="model-content">
+            <div class="metrics-grid" id="metrics-grid"></div>
+            <div class="model-panels">
+              <article class="matrix-card" id="confusion-panel"></article>
+              <article class="features-card">
+                <div class="panel-head">
+                  <h3>Top Important Features</h3>
+                  <label class="search-field">
+                    <span>Search genes or features</span>
+                    <input id="feature-search" type="search" placeholder="Search genes or features" />
+                  </label>
+                </div>
+                <div class="feature-list" id="feature-list" aria-live="polite"></div>
+              </article>
+            </div>
+            <p class="limitation" id="model-limitation"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="page-footer">COAD Cancer Predictor is an educational project for exploratory research.</footer>
+    <script src="/app.js"></script>
+  </body>
+</html>

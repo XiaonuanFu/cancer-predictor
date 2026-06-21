@@ -1,0 +1,253 @@
+{
+  "project": {
+    "title": "COAD Cancer Predictor",
+    "summary": "A research website that analyzes COAD colon cancer data and explains a tumor/normal prediction model.",
+    "researchNotice": "For education and research only. Not for medical diagnosis.",
+    "background": [
+      "COAD means colon adenocarcinoma, a type of colon cancer that starts in gland-like cells of the colon.",
+      "Colon cancer data analysis matters because public biomedical datasets can reveal patterns in genes, mutations, and sample labels.",
+      "Public biomedical data means research data shared by scientific projects so students and researchers can study disease patterns responsibly."
+    ],
+    "githubUrl": "https://github.com/XiaonuanFu/cancer-predictor",
+    "audience": "Students, teachers, and reviewers who want to understand the project without opening local databases or notebooks."
+  },
+  "datasetSummary": [
+    {
+      "key": "clinical",
+      "label": "Clinical",
+      "title": "Clinical data",
+      "description": "Patient and disease information used to understand sample context.",
+      "plainDefinition": "Clinical data means patient and disease information, such as diagnosis or sample type.",
+      "sampleCount": 512,
+      "featureCount": null,
+      "note": "Shown as a project summary only, not as a raw patient table."
+    },
+    {
+      "key": "rna",
+      "label": "RNA expression",
+      "title": "RNA expression",
+      "description": "Gene activity measurements used to build the tumor vs normal feature matrix.",
+      "plainDefinition": "RNA expression means how active genes are in a sample.",
+      "sampleCount": 512,
+      "tumorSamples": 471,
+      "normalSamples": 41,
+      "featureCount": 19486,
+      "note": "The TCGA-only adjacent-normal model uses 471 primary tumor samples and 41 solid tissue normal samples."
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "title": "Mutation data",
+      "description": "DNA sequence changes found in COAD tumor samples, used for mutation hotspots and protein-viewer context.",
+      "plainDefinition": "Mutation data means DNA sequence changes found in tumor samples.",
+      "sampleCount": 406,
+      "featureCount": null,
+      "note": "Top mutated genes include APC, TP53, KRAS, and PIK3CA in the project mutation summary."
+    }
+  ],
+  "workflowSteps": [
+    {
+      "step": 1,
+      "name": "Select COAD samples",
+      "short": "Choose COAD tumor and normal samples from curated TCGA/PanCanAtlas-related data.",
+      "details": "The website focuses on COAD only, not a pan-cancer comparison."
+    },
+    {
+      "step": 2,
+      "name": "Clean labels",
+      "short": "Standardize sample metadata and labels such as tumor or normal.",
+      "details": "Cleaning labels reduces confusion from ambiguous or low-quality entries."
+    },
+    {
+      "step": 3,
+      "name": "Build feature matrix",
+      "short": "Create a table where each row is a sample and each column is a measurable feature.",
+      "details": "In this project, many features are gene expression measurements."
+    },
+    {
+      "step": 4,
+      "name": "Train model",
+      "short": "Train machine learning models to separate tumor-like and normal-like samples.",
+      "details": "Machine learning means training a program to find patterns from data."
+    },
+    {
+      "step": 5,
+      "name": "Evaluate metrics",
+      "short": "Measure performance with accuracy, precision, recall, F1 score, and ROC-AUC.",
+      "details": "The held-out test split is used only after training to check performance."
+    },
+    {
+      "step": 6,
+      "name": "Interpret features",
+      "short": "Review important genes or molecular features used by the model.",
+      "details": "Important features are predictive signals, not proof that a gene causes cancer."
+    }
+  ],
+  "model": {
+    "task": "COAD tumor vs normal classification",
+    "inputFeatures": "COAD gene expression features from TCGA-only tumor and adjacent-normal samples.",
+    "outputLabel": "Predicted class: tumor-like or normal-like",
+    "selectedModel": "Random Forest",
+    "trainingSummary": "The TCGA-only adjacent-normal report compares Logistic Regression, Random Forest, and Linear SVM models using 471 primary tumor samples and 41 solid tissue normal samples.",
+    "limitations": [
+      "This is exploratory research and should not be used for clinical diagnosis.",
+      "The adjacent normal class has only 41 samples, so one normal-sample mistake can change the score a lot.",
+      "Batch effects are technical differences caused by data being produced in different experiments or pipelines."
+    ],
+    "samples": {
+      "tumor": 471,
+      "normal": 41,
+      "sharedGenes": 19938,
+      "modelGenes": 19486
+    },
+    "metrics": [
+      {
+        "modelKey": "logistic_regression",
+        "modelName": "Logistic Regression",
+        "accuracy": 0.9417,
+        "precision": 1.0,
+        "recall": 0.9368,
+        "f1": 0.9674,
+        "rocAuc": 1.0,
+        "balancedAccuracy": 0.9684,
+        "confusionMatrix": [[8, 0], [6, 89]],
+        "plainEnglish": "A simple linear classification model. It performed strongly, but missed 6 tumor samples in the held-out split."
+      },
+      {
+        "modelKey": "random_forest",
+        "modelName": "Random Forest",
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "rocAuc": 1.0,
+        "balancedAccuracy": 1.0,
+        "confusionMatrix": [[8, 0], [0, 95]],
+        "plainEnglish": "A tree-based model that performed perfectly on this test split. This is promising, but it is still not clinical proof."
+      },
+      {
+        "modelKey": "linear_svm",
+        "modelName": "Linear SVM",
+        "accuracy": 0.9417,
+        "precision": 1.0,
+        "recall": 0.9368,
+        "f1": 0.9674,
+        "rocAuc": 1.0,
+        "balancedAccuracy": 0.9684,
+        "confusionMatrix": [[8, 0], [6, 89]],
+        "plainEnglish": "A linear model that tries to draw a separating boundary between tumor and normal samples."
+      }
+    ],
+    "importantFeatures": [
+      {"modelKey": "logistic_regression", "rank": 1, "featureName": "OTOP3", "importanceValue": -0.0776, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "logistic_regression", "rank": 2, "featureName": "DHRS7C", "importanceValue": -0.0767, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "logistic_regression", "rank": 3, "featureName": "PRL", "importanceValue": 0.0707, "direction": "higher_tumor_score", "note": "Higher expression pushed this model toward tumor."},
+      {"modelKey": "logistic_regression", "rank": 4, "featureName": "DAO", "importanceValue": -0.068, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "logistic_regression", "rank": 5, "featureName": "MMP27", "importanceValue": -0.0679, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "logistic_regression", "rank": 6, "featureName": "FAM180B", "importanceValue": -0.0669, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "logistic_regression", "rank": 7, "featureName": "RIMS1", "importanceValue": 0.0632, "direction": "higher_tumor_score", "note": "Higher expression pushed this model toward tumor."},
+      {"modelKey": "logistic_regression", "rank": 8, "featureName": "CCKAR", "importanceValue": 0.0614, "direction": "higher_tumor_score", "note": "Higher expression pushed this model toward tumor."},
+      {"modelKey": "logistic_regression", "rank": 9, "featureName": "VEGFD", "importanceValue": -0.0599, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "logistic_regression", "rank": 10, "featureName": "OTOP2", "importanceValue": -0.0599, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "random_forest", "rank": 1, "featureName": "LGI1", "importanceValue": 0.0236, "direction": "tree_importance", "note": "Tree importance score from Random Forest; higher means the feature helped more in tree splits."},
+      {"modelKey": "random_forest", "rank": 2, "featureName": "PPM1H", "importanceValue": 0.0233, "direction": "tree_importance", "note": "Tree importance score from Random Forest; scores are relative within the model."},
+      {"modelKey": "random_forest", "rank": 3, "featureName": "HPSE2", "importanceValue": 0.0143, "direction": "tree_importance", "note": "Tree importance score from Random Forest; scores are relative within the model."},
+      {"modelKey": "random_forest", "rank": 4, "featureName": "IL6R", "importanceValue": 0.0141, "direction": "tree_importance", "note": "Tree importance score from Random Forest; scores are relative within the model."},
+      {"modelKey": "random_forest", "rank": 5, "featureName": "DDX56", "importanceValue": 0.0134, "direction": "tree_importance", "note": "Tree importance score from Random Forest; scores are relative within the model."},
+      {"modelKey": "linear_svm", "rank": 1, "featureName": "OTOP3", "importanceValue": -0.0773, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "linear_svm", "rank": 2, "featureName": "DHRS7C", "importanceValue": -0.0764, "direction": "higher_normal_score", "note": "Higher expression pushed this model toward normal."},
+      {"modelKey": "linear_svm", "rank": 3, "featureName": "PRL", "importanceValue": 0.0705, "direction": "higher_tumor_score", "note": "Higher expression pushed this model toward tumor."}
+    ]
+  },
+  "proteins": [
+    {
+      "geneSymbol": "KRAS",
+      "proteinName": "KRAS proto-oncogene, GTPase",
+      "uniprotId": "P01116",
+      "alphafoldUrl": "https://alphafold.ebi.ac.uk/entry/P01116",
+      "mutationMapperUrl": "https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=KRAS",
+      "hotspotLabel": "p.G12D / p.G12V",
+      "projectReason": "KRAS is a frequently mutated COAD gene and affects cell-growth signaling.",
+      "structureNote": "AlphaFold DB provides a predicted reference structure. Hotspot locations are shown as educational context."
+    },
+    {
+      "geneSymbol": "BRAF",
+      "proteinName": "B-Raf proto-oncogene, serine/threonine kinase",
+      "uniprotId": "P15056",
+      "alphafoldUrl": "https://alphafold.ebi.ac.uk/entry/P15056",
+      "mutationMapperUrl": "https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=BRAF",
+      "hotspotLabel": "p.V600E",
+      "projectReason": "BRAF p.V600E is a well-known cancer hotspot and appears in the COAD hotspot summary.",
+      "structureNote": "The AlphaFold confidence near this residue can be lower than for compact protein regions."
+    },
+    {
+      "geneSymbol": "PIK3CA",
+      "proteinName": "Phosphatidylinositol-4,5-bisphosphate 3-kinase catalytic subunit alpha",
+      "uniprotId": "P42336",
+      "alphafoldUrl": "https://alphafold.ebi.ac.uk/entry/P42336",
+      "mutationMapperUrl": "https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=PIK3CA",
+      "hotspotLabel": "p.E545K",
+      "projectReason": "PIK3CA is a common COAD mutation gene involved in growth signaling pathways.",
+      "structureNote": "The selected hotspot is shown to connect mutation counts with protein-level biology."
+    }
+  ],
+  "mutationTargets": [
+    {"geneSymbol": "KRAS", "proteinChange": "p.G12D", "mutationLabel": "Hotspot", "position": 12, "sampleCount": 49},
+    {"geneSymbol": "KRAS", "proteinChange": "p.G12V", "mutationLabel": "Hotspot", "position": 12, "sampleCount": 35},
+    {"geneSymbol": "BRAF", "proteinChange": "p.V600E", "mutationLabel": "Hotspot", "position": 600, "sampleCount": 48},
+    {"geneSymbol": "PIK3CA", "proteinChange": "p.E545K", "mutationLabel": "Hotspot", "position": 545, "sampleCount": 33}
+  ],
+  "compounds": [
+    {"compoundName": "Fluorouracil", "chemblId": "CHEMBL185", "molecularFormula": "C4H3FN2O2", "evidenceLabel": "Approved drug", "sourceNote": "Common colorectal cancer chemotherapy; shown for formula context only."},
+    {"compoundName": "Oxaliplatin", "chemblId": "CHEMBL414804", "molecularFormula": "C8H12N2O4Pt", "evidenceLabel": "Approved drug", "sourceNote": "Platinum-based chemotherapy used in colorectal cancer regimens."},
+    {"compoundName": "Irinotecan", "chemblId": "CHEMBL481", "molecularFormula": "C33H38N4O6", "evidenceLabel": "Approved drug", "sourceNote": "Topoisomerase I inhibitor used in colorectal cancer regimens."},
+    {"compoundName": "Capecitabine", "chemblId": "CHEMBL1773", "molecularFormula": "C15H22FN3O6", "evidenceLabel": "Approved drug", "sourceNote": "Oral prodrug of 5-fluorouracil."},
+    {"compoundName": "Regorafenib", "chemblId": "CHEMBL1946170", "molecularFormula": "C21H15ClF4N4O3", "evidenceLabel": "Approved drug", "sourceNote": "Multi-kinase inhibitor connected to colorectal cancer treatment research."},
+    {"compoundName": "Encorafenib", "chemblId": "CHEMBL3301612", "molecularFormula": "C22H27ClFN7O4S", "evidenceLabel": "Targeted therapy", "sourceNote": "BRAF inhibitor relevant to BRAF-mutated colorectal cancer research."},
+    {"compoundName": "Vemurafenib", "chemblId": "CHEMBL1229517", "molecularFormula": "C23H18ClF2N3O3S", "evidenceLabel": "Research context", "sourceNote": "BRAF inhibitor shown as pathway-related context, not as a treatment recommendation."}
+  ],
+  "glossary": [
+    {"term": "COAD", "category": "biology", "definition": "Short for colon adenocarcinoma, a type of colon cancer studied in this project.", "projectContext": "Project overview, datasets, visualizations, and analyses."},
+    {"term": "Colon adenocarcinoma", "category": "biology", "definition": "A cancer that starts in gland-like cells of the colon.", "projectContext": "Project background and COAD definition."},
+    {"term": "TCGA", "category": "biology", "definition": "The Cancer Genome Atlas, a public cancer research project that collected molecular and clinical data.", "projectContext": "Data source for COAD-related analysis."},
+    {"term": "PanCanAtlas", "category": "biology", "definition": "A TCGA project that organized molecular data across many cancer types.", "projectContext": "The website uses only the COAD-related part."},
+    {"term": "ChEMBL", "category": "database", "definition": "A public database of bioactive molecules, drug-like compounds, and activity data.", "projectContext": "Compound formula table."},
+    {"term": "AlphaFold", "category": "biology", "definition": "A system and database that provide predicted protein structures.", "projectContext": "Protein structure viewer links."},
+    {"term": "cBioPortal", "category": "database", "definition": "A public cancer genomics portal with tools such as MutationMapper.", "projectContext": "Mutation-location visualization links."},
+    {"term": "Gene", "category": "biology", "definition": "A DNA segment that can provide instructions for making RNA or protein.", "projectContext": "Expression features and important genes."},
+    {"term": "RNA expression", "category": "biology", "definition": "A measurement of how active genes are in a sample.", "projectContext": "Feature matrix and model inputs."},
+    {"term": "Mutation", "category": "biology", "definition": "A DNA sequence change found in a sample.", "projectContext": "Mutation hotspots and protein viewer."},
+    {"term": "Protein", "category": "biology", "definition": "A molecule made from amino acids that performs jobs inside cells.", "projectContext": "AlphaFold and mutation-site sections."},
+    {"term": "Protein structure", "category": "biology", "definition": "The 3D shape of a protein, which can affect how it works.", "projectContext": "AlphaFold structure viewer."},
+    {"term": "Molecular formula", "category": "biology", "definition": "A short notation showing the number and type of atoms in a molecule.", "projectContext": "ChEMBL compound formula table."},
+    {"term": "Tumor sample", "category": "biology", "definition": "A biological sample taken from tumor tissue.", "projectContext": "Dataset counts and model labels."},
+    {"term": "Normal sample", "category": "biology", "definition": "A comparison tissue sample labeled as normal or adjacent normal.", "projectContext": "Dataset counts and model labels."},
+    {"term": "Clinical data", "category": "biology", "definition": "Patient and disease information used to describe sample context.", "projectContext": "COAD dataset summary."},
+    {"term": "Database", "category": "database", "definition": "An organized system for storing and finding data.", "projectContext": "PostgreSQL and curated website schema."},
+    {"term": "Schema", "category": "database", "definition": "A named group of database tables and views.", "projectContext": "Future coad_project_web schema."},
+    {"term": "Table", "category": "database", "definition": "Data arranged in rows and columns.", "projectContext": "Feature matrix and curated summaries."},
+    {"term": "API", "category": "web", "definition": "A route that lets the frontend request data from the backend.", "projectContext": "Read-only website data route."},
+    {"term": "Frontend", "category": "computer science", "definition": "The part of the website visitors see and interact with.", "projectContext": "This website's HTML, CSS, and JavaScript."},
+    {"term": "Backend", "category": "computer science", "definition": "The server part of a website that sends data or pages.", "projectContext": "Express server in web_code."},
+    {"term": "Feature matrix", "category": "machine learning", "definition": "A table where rows are samples and columns are measurable features used by a model.", "projectContext": "Model training workflow."},
+    {"term": "Machine learning", "category": "machine learning", "definition": "Training a program to find patterns from data.", "projectContext": "Prediction model."},
+    {"term": "Classification", "category": "machine learning", "definition": "A machine learning task that predicts which group an item belongs to.", "projectContext": "Tumor vs normal prediction."},
+    {"term": "Model training", "category": "machine learning", "definition": "The process where a model learns patterns from training data.", "projectContext": "Analysis workflow."},
+    {"term": "Model evaluation", "category": "machine learning", "definition": "Checking how well a trained model performs on held-out data.", "projectContext": "Prediction model dashboard."},
+    {"term": "Accuracy", "category": "statistics", "definition": "The fraction of all predictions that are correct.", "projectContext": "Model metric cards."},
+    {"term": "Precision", "category": "statistics", "definition": "Among samples predicted as a class, the fraction that truly belong to that class.", "projectContext": "Model metric cards."},
+    {"term": "Recall", "category": "statistics", "definition": "Among true samples of a class, the fraction the model correctly found.", "projectContext": "Model metric cards."},
+    {"term": "F1 score", "category": "statistics", "definition": "A combined score that balances precision and recall.", "projectContext": "Model metric cards."},
+    {"term": "ROC-AUC", "category": "statistics", "definition": "A score that measures how well a model separates classes across thresholds.", "projectContext": "Model metric cards."},
+    {"term": "Read-only access", "category": "web", "definition": "Visitors can view data and results but cannot change project records or files.", "projectContext": "Website safety policy."}
+  ],
+  "references": [
+    {"name": "TCGA/PanCanAtlas", "type": "Data source", "url": "https://gdc.cancer.gov/about-data/publications/pancanatlas", "usedFor": "COAD clinical, mutation, and molecular data context.", "accessDate": "2026-06-21", "citationNote": "Public TCGA/PanCanAtlas reference."},
+    {"name": "GDC Data Portal", "type": "Data source", "url": "https://portal.gdc.cancer.gov/", "usedFor": "TCGA COAD data access and project context.", "accessDate": "2026-06-21", "citationNote": "National Cancer Institute Genomic Data Commons."},
+    {"name": "ChEMBL", "type": "Tools and databases", "url": "https://www.ebi.ac.uk/chembl/", "usedFor": "Selected compound names, ChEMBL IDs, and molecular formulas.", "accessDate": "2026-06-21", "citationNote": "ChEMBL database, EMBL-EBI."},
+    {"name": "AlphaFold DB", "type": "Tools and databases", "url": "https://alphafold.ebi.ac.uk/", "usedFor": "Predicted protein structure links for selected COAD-related proteins.", "accessDate": "2026-06-21", "citationNote": "AlphaFold DB, EMBL-EBI."},
+    {"name": "cBioPortal MutationMapper", "type": "Tools and databases", "url": "https://www.cbioportal.org/mutation_mapper", "usedFor": "Protein mutation-location visualization links.", "accessDate": "2026-06-21", "citationNote": "cBioPortal for Cancer Genomics."},
+    {"name": "Project GitHub repository", "type": "GitHub", "url": "https://github.com/XiaonuanFu/cancer-predictor", "usedFor": "Source code, project documentation, and analysis workflow.", "accessDate": "2026-06-21", "citationNote": "Nancy's COAD Cancer Predictor project repository."},
+    {"name": "TCGA-only adjacent-normal model report", "type": "Project report", "url": "#model", "usedFor": "Model sample counts, metric summaries, and important gene examples.", "accessDate": "2026-06-21", "citationNote": "Project-generated summary data; raw local paths are not exposed."}
+  ]
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Biology And Compounds | COAD Cancer Predictor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="page-biology">
+    <header class="site-header biology-header">
+      <a class="brand brand-coad" href="/" aria-label="COAD Cancer Predictor home">
+        <span class="brand-mark brand-colon" aria-hidden="true"><span></span></span>
+        <span>
+          <strong>COAD Cancer Predictor</strong>
+          <small>Evidence / Biology / Insight</small>
+        </span>
+      </a>
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav class="nav icon-nav" id="primary-nav" aria-label="Primary navigation">
+        <a href="/" data-nav="home"><span>Overview</span></a>
+        <a href="/data.html#coad-data" data-nav="data"><span>Patients</span></a>
+        <a href="/biology.html#proteins" data-nav="biology"><span>Biology</span></a>
+        <a href="/biology.html#chembl" data-nav="biology"><span>Compounds</span></a>
+        <a href="/resources.html#sources" data-nav="resources"><span>About</span></a>
+      </nav>
+      <a class="atlas-button" href="/data.html#coad-data">COAD Atlas</a>
+    </header>
+
+    <main class="screen-page biology-screen">
+      <section class="section-band protein-section" id="proteins">
+        <div class="section-heading screen-heading">
+          <h1>Protein Structure And Mutation Site Viewer</h1>
+          <p>AlphaFold structures are predicted protein shapes, not always experimentally measured structures.</p>
+        </div>
+        <div class="protein-layout">
+          <aside class="protein-sidebar">
+            <h2>1. Select a gene</h2>
+            <div class="gene-tabs" id="gene-tabs" role="tablist" aria-label="Protein gene choices"></div>
+            <dl class="protein-facts" id="protein-facts"></dl>
+            <div class="plain-idea">
+              <strong>Plain English idea</strong>
+              <p>Protein structure: the 3D shape of a protein, which can affect how it works.</p>
+            </div>
+            <div class="external-actions" id="protein-actions"></div>
+          </aside>
+          <article class="structure-card" id="structure-card"></article>
+          <article class="mutation-card" id="mutation-card"></article>
+        </div>
+      </section>
+
+      <section class="section-band chembl-section" id="chembl">
+        <div class="section-heading screen-heading">
+          <h2>ChEMBL COAD Compound Formulas</h2>
+          <p>ChEMBL is a public database of bioactive molecules and drug-like compounds.</p>
+        </div>
+        <div class="table-tools">
+          <label class="search-field">
+            <span>Search compound or ChEMBL ID</span>
+            <input id="compound-search" type="search" placeholder="Search compound or ChEMBL ID" />
+          </label>
+          <label>
+            <span>Evidence label</span>
+            <select id="compound-filter"></select>
+          </label>
+          <label>
+            <span>Sort by name</span>
+            <select id="compound-sort">
+              <option value="name">Sort by name</option>
+              <option value="formula">Sort by molecular formula</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Compound</th>
+                <th>ChEMBL ID</th>
+                <th>Molecular formula</th>
+                <th>Evidence</th>
+                <th>Source note</th>
+              </tr>
+            </thead>
+            <tbody id="compound-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

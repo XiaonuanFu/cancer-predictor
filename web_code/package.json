@@ -1,14 +1,21 @@
 {
-  "name": "cancer-data-node-console",
+  "name": "coad-cancer-predictor-website",
   "version": "0.1.0",
   "private": true,
-  "description": "Node dashboard for cancer, chemical, and analysis data backed by local PostgreSQL.",
+  "description": "Read-only COAD Cancer Predictor research website served by Express.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node dist/server.js",
+    "dev": "npm run build && node dist/server.js",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "pg": "^8.13.1"
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.0.0",
+    "typescript": "^6.0.3"
   }
 }

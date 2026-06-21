@@ -9,9 +9,7 @@ if [ -f "$NODE_APP_DIR/package.json" ]; then
     echo "Starting Node service from $NODE_APP_DIR on port $NODE_PORT..."
     (
         cd "$NODE_APP_DIR"
-        if [ ! -d node_modules ]; then
-            npm install
-        fi
+        npm install
         export PORT="$NODE_PORT"
         sh -lc "$NODE_START_COMMAND"
     ) &

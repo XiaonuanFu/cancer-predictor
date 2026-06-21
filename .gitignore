@@ -1,2 +1,7 @@
 data/
 docker_storage/
+node_modules/
+web_code/node_modules/
+web_code/dist/
+!web_code/public/data/
+!web_code/public/data/coad-project-data.json
