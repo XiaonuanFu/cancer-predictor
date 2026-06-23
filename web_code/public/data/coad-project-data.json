@@ -1,7 +1,7 @@
 {
   "project": {
-    "title": "COAD Cancer Predictor",
-    "summary": "A research website that analyzes COAD colon cancer data and explains a tumor/normal prediction model.",
+    "title": "COAD Project",
+    "summary": "An educational research website for exploring COAD PanCanAtlas data, tumor/normal modeling, protein mutation sites, and ChEMBL compound context.",
     "researchNotice": "For education and research only. Not for medical diagnosis.",
     "background": [
       "COAD means colon adenocarcinoma, a type of colon cancer that starts in gland-like cells of the colon.",
@@ -45,6 +45,296 @@
       "note": "Top mutated genes include APC, TP53, KRAS, and PIK3CA in the project mutation summary."
     }
   ],
+  "coadDataPage": {
+    "sections": [
+      {
+        "key": "clinical",
+        "label": "Clinical",
+        "title": "Clinical data",
+        "sourceReport": "coad_clinical_survival_report",
+        "summary": "Patient and disease information used to describe COAD (colon adenocarcinoma, a type of colon cancer) survival patterns.",
+        "plainDefinition": "Clinical data means patient and disease information, such as age, sex, cancer stage, and survival time.",
+        "metrics": [
+          {"label": "Total patients", "value": 459, "note": "COAD patients in the clinical report."},
+          {"label": "Stage I-IV", "value": 448, "note": "Patients with usable cancer stage labels."},
+          {"label": "Usable OS", "value": 442, "note": "Patients with overall survival data."},
+          {"label": "Death events", "value": 98, "note": "Observed deaths in this follow-up dataset."}
+        ],
+        "charts": [
+          {
+            "id": "clinical-age",
+            "type": "bar",
+            "title": "Age distribution",
+            "takeaway": "Most patients are older adults, with the largest groups in 60-69 and 70-79.",
+            "xLabel": "Age group",
+            "yLabel": "Patients",
+            "data": [
+              {"label": "<40", "value": 12},
+              {"label": "40-49", "value": 43},
+              {"label": "50-59", "value": 71},
+              {"label": "60-69", "value": 119},
+              {"label": "70-79", "value": 126},
+              {"label": "80+", "value": 88}
+            ]
+          },
+          {
+            "id": "clinical-stage",
+            "type": "bar",
+            "title": "Stage distribution",
+            "takeaway": "Stage II and Stage III are the largest groups in this clinical summary.",
+            "xLabel": "Stage",
+            "yLabel": "Patients",
+            "data": [
+              {"label": "Stage I", "value": 76},
+              {"label": "Stage II", "value": 178},
+              {"label": "Stage III", "value": 129},
+              {"label": "Stage IV", "value": 65},
+              {"label": "Missing/unknown", "value": 11}
+            ]
+          },
+          {
+            "id": "clinical-gender",
+            "type": "donut",
+            "title": "Gender split",
+            "takeaway": "The gender split is close, with slightly more male patients.",
+            "data": [
+              {"label": "Male", "value": 243},
+              {"label": "Female", "value": 216}
+            ]
+          },
+          {
+            "id": "clinical-survival",
+            "type": "groupedBar",
+            "title": "Survival by stage",
+            "takeaway": "Later stages have lower survival percentages in this report.",
+            "xLabel": "Stage",
+            "yLabel": "Survival (%)",
+            "series": [
+              {"name": "1-year", "values": [97.2, 95.6, 88.2, 68.8]},
+              {"name": "3-year", "values": [94.6, 91.3, 71.1, 42.3]},
+              {"name": "5-year", "values": [78.9, 77.2, 55.0, 37.1]}
+            ],
+            "categories": ["Stage I", "Stage II", "Stage III", "Stage IV"]
+          },
+          {
+            "id": "clinical-prognosis",
+            "type": "forest",
+            "title": "Factors related to prognosis",
+            "takeaway": "Stage relates more strongly to prognosis than gender in this analysis. Hazard ratio means a number comparing risk between groups.",
+            "xLabel": "Hazard ratio",
+            "data": [
+              {"label": "Age, per 10 years", "value": 1.34, "low": 1.13, "high": 1.58, "p": "0.0007"},
+              {"label": "Male vs female", "value": 0.98, "low": 0.65, "high": 1.46, "p": "0.9053"},
+              {"label": "Stage, per level increase", "value": 2.36, "low": 1.86, "high": 2.99, "p": "0.0000"}
+            ]
+          }
+        ]
+      },
+      {
+        "key": "rna",
+        "label": "RNA expression",
+        "title": "RNA expression",
+        "sourceReport": "coad_gene_expression_analysis_report",
+        "summary": "Gene activity measurements comparing COAD tumor samples with normal colon-related samples.",
+        "plainDefinition": "RNA expression means how active genes are in a sample. Higher expression means the gene is producing more RNA signal.",
+        "metrics": [
+          {"label": "Samples", "value": 757, "note": "449 tumor samples plus 308 normal samples."},
+          {"label": "Tumor samples", "value": 449, "note": "From bio_tcga.matrix_rnaseq_gene_expression."},
+          {"label": "Normal samples", "value": 308, "note": "From toil_gtex_colon_normal.expression_log2_tpm."},
+          {"label": "Genes", "value": 17974, "note": "Genes analyzed after matching the expression data."}
+        ],
+        "charts": [
+          {
+            "id": "rna-samples",
+            "type": "donut",
+            "title": "Tumor vs normal samples",
+            "takeaway": "The expression analysis compares 449 tumor samples with 308 normal colon-related samples.",
+            "data": [
+              {"label": "Tumor", "value": 449},
+              {"label": "Normal", "value": 308}
+            ]
+          },
+          {
+            "id": "rna-differential",
+            "type": "bar",
+            "title": "Differential expression categories",
+            "takeaway": "Differential expression means checking which genes are more or less active in tumor samples.",
+            "xLabel": "Category",
+            "yLabel": "Genes",
+            "data": [
+              {"label": "Upregulated in tumor", "value": 14993},
+              {"label": "Not significant or small effect", "value": 2873},
+              {"label": "Downregulated in tumor", "value": 108}
+            ]
+          },
+          {
+            "id": "rna-upregulated",
+            "type": "horizontalBar",
+            "title": "Top upregulated genes",
+            "takeaway": "Positive log2 fold change means higher expression in tumor samples.",
+            "xLabel": "log2 fold change",
+            "data": [
+              {"label": "ADAM6", "value": 15.0982},
+              {"label": "EEF1A1P9", "value": 12.8840},
+              {"label": "CLDN2", "value": 11.6137},
+              {"label": "DPEP1", "value": 11.3124},
+              {"label": "EIF5AL1", "value": 10.6812},
+              {"label": "TNS4", "value": 10.5349},
+              {"label": "CDH3", "value": 10.5236},
+              {"label": "CLDN1", "value": 10.4895},
+              {"label": "NME2", "value": 10.4626},
+              {"label": "ETV4", "value": 10.4168}
+            ]
+          },
+          {
+            "id": "rna-downregulated",
+            "type": "horizontalBar",
+            "title": "Top downregulated genes",
+            "takeaway": "Negative log2 fold change means lower expression in tumor samples than in normal samples.",
+            "xLabel": "log2 fold change",
+            "data": [
+              {"label": "RPL21", "value": -6.2248},
+              {"label": "SPATA4", "value": -4.9664},
+              {"label": "KRTAP13-2", "value": -4.9009},
+              {"label": "FAM166B", "value": -4.7477},
+              {"label": "RERGL", "value": -4.1701},
+              {"label": "CYP4B1", "value": -4.0381},
+              {"label": "IGSF5", "value": -4.0126},
+              {"label": "ZACN", "value": -4.0053},
+              {"label": "OR5K2", "value": -3.9758},
+              {"label": "A4GNT", "value": -3.6143}
+            ]
+          },
+          {
+            "id": "rna-volcano",
+            "type": "image",
+            "title": "Volcano plot",
+            "takeaway": "A volcano plot shows both effect size and statistical evidence for many genes.",
+            "imageSrc": "/assets/coad-data/rna-volcano.png",
+            "imageAlt": "Volcano plot from the COAD gene expression analysis notebook."
+          },
+          {
+            "id": "rna-heatmap",
+            "type": "image",
+            "title": "Heatmap of top differentially expressed genes",
+            "takeaway": "A heatmap uses color to show expression patterns across samples and genes.",
+            "imageSrc": "/assets/coad-data/rna-heatmap.png",
+            "imageAlt": "Heatmap from the COAD gene expression analysis notebook."
+          }
+        ]
+      },
+      {
+        "key": "mutation",
+        "label": "Mutation",
+        "title": "Mutation data",
+        "sourceReport": "coad_pancanatlas_mutation_landscape_report",
+        "summary": "DNA sequence changes found in COAD tumor samples, including variant types, hotspot positions, and frequently mutated genes.",
+        "plainDefinition": "Mutation data means DNA sequence changes found in tumor samples. A hotspot is a mutation position that appears repeatedly.",
+        "metrics": [
+          {"label": "Clinical patients", "value": 459, "note": "Patients in the linked clinical summary."},
+          {"label": "Mutation records", "value": 277114, "note": "Total mutation records in the report."},
+          {"label": "Tumor samples", "value": 406, "note": "Tumor samples with mutation data."},
+          {"label": "Mutated genes", "value": 19586, "note": "Genes with at least one mutation record."}
+        ],
+        "charts": [
+          {
+            "id": "mutation-variant-type",
+            "type": "donut",
+            "title": "Variant types",
+            "takeaway": "SNPs are the most common variant type in this mutation dataset.",
+            "data": [
+              {"label": "SNP", "value": 250637},
+              {"label": "DEL", "value": 21166},
+              {"label": "INS", "value": 5299},
+              {"label": "ONP", "value": 12}
+            ]
+          },
+          {
+            "id": "mutation-functional-class",
+            "type": "horizontalBar",
+            "title": "Functional classes",
+            "takeaway": "Missense mutations change one amino acid in a protein; silent mutations do not change the amino acid.",
+            "xLabel": "Mutation records",
+            "data": [
+              {"label": "Missense_Mutation", "value": 144030},
+              {"label": "Silent", "value": 57664},
+              {"label": "3'UTR", "value": 20267},
+              {"label": "Frame_Shift_Del", "value": 14562},
+              {"label": "Nonsense_Mutation", "value": 10835},
+              {"label": "Intron", "value": 8686},
+              {"label": "5'UTR", "value": 6607},
+              {"label": "Frame_Shift_Ins", "value": 3931},
+              {"label": "Splice_Site", "value": 3322},
+              {"label": "RNA", "value": 3125}
+            ]
+          },
+          {
+            "id": "mutation-top-genes",
+            "type": "horizontalBarPercent",
+            "title": "Most frequently mutated genes",
+            "takeaway": "A sample can have mutations in more than one gene, so these percentages should not be added together.",
+            "xLabel": "Mutated samples",
+            "data": [
+              {"label": "APC", "value": 291, "percent": 71.7},
+              {"label": "TTN", "value": 247, "percent": 60.8},
+              {"label": "TP53", "value": 226, "percent": 55.7},
+              {"label": "KRAS", "value": 176, "percent": 43.3},
+              {"label": "MUC16", "value": 140, "percent": 34.5},
+              {"label": "SYNE1", "value": 138, "percent": 34.0},
+              {"label": "PIK3CA", "value": 128, "percent": 31.5},
+              {"label": "OBSCN", "value": 122, "percent": 30.0},
+              {"label": "FAT4", "value": 116, "percent": 28.6},
+              {"label": "ZFHX4", "value": 104, "percent": 25.6}
+            ]
+          },
+          {
+            "id": "mutation-hotspots",
+            "type": "horizontalBar",
+            "title": "Mutation hotspots",
+            "takeaway": "A hotspot is a mutation position that appears repeatedly in different tumor samples.",
+            "xLabel": "Mutated samples",
+            "data": [
+              {"label": "KRAS p.G12D", "value": 49},
+              {"label": "BRAF p.V600E", "value": 48},
+              {"label": "KRAS p.G12V", "value": 35},
+              {"label": "PIK3CA p.E545K", "value": 33},
+              {"label": "KRAS p.G13D", "value": 30},
+              {"label": "APC p.R1450*", "value": 26},
+              {"label": "TP53 p.R175H", "value": 24}
+            ]
+          },
+          {
+            "id": "mutation-tmb",
+            "type": "boxSummary",
+            "title": "Tumor mutation burden summary",
+            "takeaway": "A few samples have very high mutation counts, so the mean is much higher than the median.",
+            "data": [
+              {"label": "Samples", "value": 406},
+              {"label": "Mean", "value": 682.5},
+              {"label": "Median", "value": 181.5},
+              {"label": "Maximum", "value": 13582}
+            ]
+          },
+          {
+            "id": "mutation-comutation",
+            "type": "image",
+            "title": "Co-mutation heatmap",
+            "takeaway": "Co-mutation means two genes are mutated in the same sample.",
+            "imageSrc": "/assets/coad-data/mutation-comutation-heatmap.png",
+            "imageAlt": "Co-mutation heatmap from the COAD mutation notebook."
+          },
+          {
+            "id": "mutation-stage-frequency",
+            "type": "image",
+            "title": "Mutation frequency by AJCC stage",
+            "takeaway": "This checks whether common mutation genes appear at different rates across cancer stages.",
+            "imageSrc": "/assets/coad-data/mutation-stage-frequency.png",
+            "imageAlt": "Mutation frequency by AJCC stage chart from the COAD mutation notebook."
+          }
+        ]
+      }
+    ]
+  },
   "workflowSteps": [
     {
       "step": 1,
@@ -247,7 +537,7 @@
     {"name": "ChEMBL", "type": "Tools and databases", "url": "https://www.ebi.ac.uk/chembl/", "usedFor": "Selected compound names, ChEMBL IDs, and molecular formulas.", "accessDate": "2026-06-21", "citationNote": "ChEMBL database, EMBL-EBI."},
     {"name": "AlphaFold DB", "type": "Tools and databases", "url": "https://alphafold.ebi.ac.uk/", "usedFor": "Predicted protein structure links for selected COAD-related proteins.", "accessDate": "2026-06-21", "citationNote": "AlphaFold DB, EMBL-EBI."},
     {"name": "cBioPortal MutationMapper", "type": "Tools and databases", "url": "https://www.cbioportal.org/mutation_mapper", "usedFor": "Protein mutation-location visualization links.", "accessDate": "2026-06-21", "citationNote": "cBioPortal for Cancer Genomics."},
-    {"name": "Project GitHub repository", "type": "GitHub", "url": "https://github.com/XiaonuanFu/cancer-predictor", "usedFor": "Source code, project documentation, and analysis workflow.", "accessDate": "2026-06-21", "citationNote": "Nancy's COAD Cancer Predictor project repository."},
-    {"name": "TCGA-only adjacent-normal model report", "type": "Project report", "url": "#model", "usedFor": "Model sample counts, metric summaries, and important gene examples.", "accessDate": "2026-06-21", "citationNote": "Project-generated summary data; raw local paths are not exposed."}
+    {"name": "Project GitHub repository", "type": "GitHub", "url": "https://github.com/XiaonuanFu/cancer-predictor", "usedFor": "Source code, project documentation, and analysis workflow.", "accessDate": "2026-06-21", "citationNote": "Nancy's COAD Project repository."},
+    {"name": "TCGA-only adjacent-normal model report", "type": "Project report", "url": "/model.html", "usedFor": "Model sample counts, metric summaries, and important gene examples.", "accessDate": "2026-06-21", "citationNote": "Project-generated summary data; raw local paths are not exposed."}
   ]
 }

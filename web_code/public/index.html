@@ -5,47 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="COAD Cancer Predictor is an educational research website explaining COAD data and a tumor vs normal prediction model."
+      content="COAD Project is an educational research website for COAD PanCanAtlas data, tumor/normal modeling, protein hotspots, and ChEMBL compound context."
     />
-    <title>COAD Cancer Predictor</title>
+    <title>COAD Project</title>
+    <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="page-home">
-    <header class="site-header">
-      <a class="brand" href="/" aria-label="COAD Cancer Predictor home">
+    <header class="site-header project-header">
+      <a class="brand" href="/" aria-label="COAD Project home">
         <span class="brand-mark brand-dna" aria-hidden="true"><span></span></span>
         <span>
-          <span class="brand-title">COAD Cancer Predictor</span>
+          <span class="brand-title">COAD Project</span>
         </span>
       </a>
       <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
       <nav class="nav" id="primary-nav" aria-label="Primary navigation">
         <a href="/" data-nav="home">Overview</a>
-        <a href="/data.html#coad-data" data-nav="data">COAD Data</a>
-        <a href="/data.html#workflow" data-nav="data">Workflow</a>
-        <a href="/data.html#model" data-nav="data">Model</a>
-        <a href="/biology.html#proteins" data-nav="biology">Proteins</a>
-        <a href="/biology.html#chembl" data-nav="biology">ChEMBL</a>
-        <a href="/resources.html#glossary" data-nav="resources">Glossary</a>
-        <a href="/resources.html#sources" data-nav="resources">Sources</a>
-        <a href="/resources.html#contact" data-nav="resources">Contact</a>
+        <a href="/data.html" data-nav="data">COAD Data</a>
+        <a href="/workflow.html" data-nav="workflow">Workflow</a>
+        <a href="/model.html" data-nav="model">Model</a>
+        <a href="/proteins.html" data-nav="proteins">Proteins</a>
+        <a href="/chembl.html" data-nav="chembl">ChEMBL</a>
+        <a href="/glossary.html" data-nav="glossary">Glossary</a>
+        <a href="/sources.html" data-nav="sources">Sources</a>
+        <a href="/contact.html" data-nav="contact">Contact</a>
       </nav>
     </header>
 
     <main>
       <section class="hero section-band" id="overview">
         <div class="hero-copy">
-          <h1>COAD Cancer Predictor</h1>
+          <h1>COAD Project</h1>
           <p class="hero-subtitle">
-            A research website that analyzes COAD colon cancer data and explains a tumor/normal prediction model.
+            An educational research website for exploring COAD PanCanAtlas data, tumor/normal modeling, protein mutation sites, and ChEMBL compound context.
           </p>
           <div class="notice">
             <span aria-hidden="true">!</span>
             <p>For education and research only.<br />Not for medical diagnosis.</p>
           </div>
           <div class="hero-actions" aria-label="Primary actions">
-            <a class="button primary" href="/data.html#model">Explore the model</a>
-            <a class="button secondary" href="/resources.html#sources">View data sources</a>
+            <a class="button primary" href="/model.html">Explore the model</a>
+            <a class="button secondary" href="/sources.html">View data sources</a>
           </div>
         </div>
 
@@ -150,7 +151,7 @@
             COAD (Colon Adenocarcinoma) data from PanCanAtlas is the foundation of this project. Explore the sample
             composition, data types, and key characteristics used in the analysis.
           </p>
-          <a class="inline-link" href="/data.html#coad-data">Learn more about COAD data</a>
+          <a class="inline-link" href="/data.html">Learn more about COAD data</a>
         </div>
         <div class="stat-rail" id="hero-stats" aria-live="polite"></div>
       </section>

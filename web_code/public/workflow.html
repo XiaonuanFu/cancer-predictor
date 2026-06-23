@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="COAD PanCanAtlas data page for the COAD Project research website."
+      content="Analysis workflow page for the COAD Project research website."
     />
-    <title>COAD Data | COAD Project</title>
+    <title>Workflow | COAD Project</title>
     <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="page-section page-data">
+  <body class="page-section page-workflow">
     <header class="site-header project-header">
       <a class="brand" href="/" aria-label="COAD Project home">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
@@ -32,18 +32,18 @@
     </header>
 
     <main class="screen-page">
-      <section class="section-band data-screen" id="coad-data">
-        <div class="data-layout">
-          <aside class="data-sidebar" aria-label="COAD report sections">
-            <div class="choice-stack data-choice-stack" id="data-filters" role="tablist" aria-label="COAD data type filters"></div>
-          </aside>
-          <article class="data-report-panel" id="data-report" aria-live="polite"></article>
+      <section class="section-band workflow-section screen-workflow" id="workflow">
+        <div class="section-heading screen-heading">
+          <span class="section-kicker">Workflow</span>
+          <h1>Analysis Workflow</h1>
+          <p>Follow the read-only project path from curated COAD data to model interpretation.</p>
         </div>
+        <div class="workflow-line" id="workflow-line" aria-label="Analysis workflow steps"></div>
+        <article class="workflow-detail" id="workflow-detail" aria-live="polite"></article>
       </section>
     </main>
 
     <footer class="page-footer">COAD Project is an educational project for exploratory research.</footer>
-    <script src="/vendor/echarts.min.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

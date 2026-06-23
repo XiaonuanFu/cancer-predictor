@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="COAD PanCanAtlas data page for the COAD Project research website."
+      content="Protein structure and mutation viewer page for the COAD Project research website."
     />
-    <title>COAD Data | COAD Project</title>
+    <title>Proteins | COAD Project</title>
     <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="page-section page-data">
+  <body class="page-section page-proteins">
     <header class="site-header project-header">
       <a class="brand" href="/" aria-label="COAD Project home">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
@@ -31,19 +31,31 @@
       </nav>
     </header>
 
-    <main class="screen-page">
-      <section class="section-band data-screen" id="coad-data">
-        <div class="data-layout">
-          <aside class="data-sidebar" aria-label="COAD report sections">
-            <div class="choice-stack data-choice-stack" id="data-filters" role="tablist" aria-label="COAD data type filters"></div>
+    <main class="screen-page biology-screen">
+      <section class="section-band protein-section" id="proteins">
+        <div class="section-heading screen-heading">
+          <span class="section-kicker">Proteins</span>
+          <h1>Protein Structure And Mutation Site Viewer</h1>
+          <p>AlphaFold structures are predicted protein shapes, not always experimentally measured structures.</p>
+        </div>
+        <div class="protein-layout">
+          <aside class="protein-sidebar">
+            <h2>1. Select a gene</h2>
+            <div class="gene-tabs" id="gene-tabs" role="tablist" aria-label="Protein gene choices"></div>
+            <dl class="protein-facts" id="protein-facts"></dl>
+            <div class="plain-idea">
+              <strong>Plain English idea</strong>
+              <p>Protein structure: the 3D shape of a protein, which can affect how it works.</p>
+            </div>
+            <div class="external-actions" id="protein-actions"></div>
           </aside>
-          <article class="data-report-panel" id="data-report" aria-live="polite"></article>
+          <article class="structure-card" id="structure-card"></article>
+          <article class="mutation-card" id="mutation-card"></article>
         </div>
       </section>
     </main>
 
-    <footer class="page-footer">COAD Project is an educational project for exploratory research.</footer>
-    <script src="/vendor/echarts.min.js"></script>
+    <footer class="page-footer">Protein links open public scientific resources in new tabs.</footer>
     <script src="/app.js"></script>
   </body>
 </html>

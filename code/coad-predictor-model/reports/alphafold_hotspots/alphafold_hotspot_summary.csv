@@ -1,5 +1,0 @@
-gene,mutation,uniprot,entry_id,residue,wild_type,mutant,structure_aa,residue_plddt,confidence_label,model_mean_plddt,latest_version,model_created_date,pdb_file,cif_file
-KRAS,p.G12D,P01116,AF-P01116-F1,12,G,D,G,93.94,very high,91.5,6,2025-08-01T00:00:00Z,structures/AF-P01116-F1.pdb,structures/AF-P01116-F1.cif
-KRAS,p.G12V,P01116,AF-P01116-F1,12,G,V,G,93.94,very high,91.5,6,2025-08-01T00:00:00Z,structures/AF-P01116-F1.pdb,structures/AF-P01116-F1.cif
-BRAF,p.V600E,P15056,AF-P15056-F1,600,V,E,V,49.06,very low,66.38,6,2025-08-01T00:00:00Z,structures/AF-P15056-F1.pdb,structures/AF-P15056-F1.cif
-PIK3CA,p.E545K,P42336,AF-P42336-F1,545,E,K,E,94.12,very high,92.38,6,2025-08-01T00:00:00Z,structures/AF-P42336-F1.pdb,structures/AF-P42336-F1.cif

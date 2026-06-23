@@ -1,6 +1,6 @@
 const state = {
   data: null,
-  selectedDataKey: "rna",
+  selectedDataKey: "clinical",
   selectedStep: 1,
   selectedModelKey: "random_forest",
   selectedModelView: "metrics",
@@ -19,6 +19,7 @@ const els = {
   nav: document.querySelector("#primary-nav"),
   heroStats: document.querySelector("#hero-stats"),
   dataFilters: document.querySelector("#data-filters"),
+  dataReport: document.querySelector("#data-report"),
   dataDefinition: document.querySelector("#data-definition"),
   sampleSummary: document.querySelector("#sample-summary"),
   sampleBars: document.querySelector("#sample-bars"),
@@ -49,6 +50,8 @@ const els = {
   contactNote: document.querySelector("#contact-note")
 };
 
+const chartInstances = new Map();
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -74,6 +77,35 @@ function externalLink(url, label) {
   return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
 }
 
+function chartColor(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function chartPalette() {
+  return [
+    chartColor("--green", "#0f473d"),
+    chartColor("--blue", "#2b6fb3"),
+    chartColor("--coral", "#ec635c"),
+    "#7b8f8a",
+    "#b8a25b",
+    "#6b7fa8"
+  ];
+}
+
+function disposeDataCharts() {
+  chartInstances.forEach((chart, id) => {
+    if (id.startsWith("coad-data-")) {
+      chart.dispose();
+      chartInstances.delete(id);
+    }
+  });
+}
+
+function resizeCharts() {
+  chartInstances.forEach((chart) => chart.resize());
+}
+
 async function fetchJson(url) {
   const response = await fetch(url);
   const payload = await response.json();
@@ -83,23 +115,22 @@ async function fetchJson(url) {
 
 function setActiveNav() {
   if (!els.nav) return;
-  const path = window.location.pathname;
-  const page =
-    path.endsWith("/data.html") ? "data" :
-    path.endsWith("/biology.html") ? "biology" :
-    path.endsWith("/resources.html") ? "resources" :
-    "home";
-  const defaultHash = {
-    home: "",
-    data: "#coad-data",
-    biology: "#proteins",
-    resources: "#glossary"
-  }[page];
-  const currentHash = window.location.hash || defaultHash;
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const pageMap = {
+    "/": "home",
+    "/index.html": "home",
+    "/data.html": "data",
+    "/workflow.html": "workflow",
+    "/model.html": "model",
+    "/proteins.html": "proteins",
+    "/chembl.html": "chembl",
+    "/glossary.html": "glossary",
+    "/sources.html": "sources",
+    "/contact.html": "contact"
+  };
+  const page = pageMap[path] || "home";
   els.nav.querySelectorAll("a").forEach((link) => {
-    const url = new URL(link.href, window.location.origin);
-    const active = url.pathname === path && (url.hash || "") === currentHash;
-    link.classList.toggle("active", active);
+    link.classList.toggle("active", link.dataset.nav === page);
   });
 }
 
@@ -151,17 +182,185 @@ function renderHeroStats() {
     .join("");
 }
 
-function renderDataSection() {
-  if (!els.dataFilters || !els.dataDefinition || !els.sampleBars) return;
-  const item = state.data.datasetSummary.find((entry) => entry.key === state.selectedDataKey);
-  const rna = state.data.datasetSummary.find((entry) => entry.key === "rna");
+function chartCardHtml(chart) {
+  const chartId = `coad-data-${chart.id}`;
+  const media =
+    chart.type === "image"
+      ? `<figure class="notebook-figure"><img src="${escapeHtml(chart.imageSrc)}" alt="${escapeHtml(chart.imageAlt)}" loading="lazy" /></figure>`
+      : chart.type === "boxSummary"
+        ? `<div class="tmb-summary">${chart.data
+            .map((item) => `<article><span>${escapeHtml(item.label)}</span><strong>${formatNumber(item.value)}</strong></article>`)
+            .join("")}</div>`
+        : `<div class="echart-canvas" id="${escapeHtml(chartId)}" role="img" aria-label="${escapeHtml(chart.title)}"></div>`;
 
-  els.dataFilters.innerHTML = state.data.datasetSummary
+  return `
+    <section class="data-chart-card">
+      <div class="data-chart-head">
+        <h3>${escapeHtml(chart.title)}</h3>
+        <span>${chart.type === "image" ? "Notebook figure" : chart.type === "boxSummary" ? "Summary" : "ECharts"}</span>
+      </div>
+      ${media}
+      <p>${escapeHtml(chart.takeaway)}</p>
+    </section>
+  `;
+}
+
+function baseChartOption(chart) {
+  return {
+    color: chartPalette(),
+    animationDuration: 700,
+    grid: { left: 58, right: 24, top: 34, bottom: 54, containLabel: true },
+    tooltip: { trigger: "item", confine: true },
+    textStyle: { color: "#243935", fontFamily: "Avenir Next, Helvetica Neue, sans-serif" }
+  };
+}
+
+function chartOption(chart) {
+  const option = baseChartOption(chart);
+  const labels = chart.data?.map((item) => item.label) || [];
+  const values = chart.data?.map((item) => item.value) || [];
+
+  if (chart.type === "donut") {
+    return {
+      ...option,
+      legend: { bottom: 0, itemWidth: 10, itemHeight: 10 },
+      series: [
+        {
+          name: chart.title,
+          type: "pie",
+          radius: ["48%", "72%"],
+          center: ["50%", "44%"],
+          avoidLabelOverlap: true,
+          label: { formatter: "{b}: {c}" },
+          data: chart.data.map((item) => ({ name: item.label, value: item.value }))
+        }
+      ]
+    };
+  }
+
+  if (chart.type === "horizontalBar" || chart.type === "horizontalBarPercent") {
+    return {
+      ...option,
+      grid: { left: 118, right: 36, top: 28, bottom: 38, containLabel: true },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const item = chart.data[params[0].dataIndex];
+          const extra = item.percent == null ? "" : ` (${item.percent}%)`;
+          return `${escapeHtml(item.label)}<br />${formatNumber(item.value)}${extra}`;
+        }
+      },
+      xAxis: { type: "value", name: chart.xLabel || "", nameLocation: "middle", nameGap: 28, axisLine: { lineStyle: { color: "#9eb7b2" } } },
+      yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: "#9eb7b2" } } },
+      series: [
+        {
+          type: "bar",
+          data: values,
+          barMaxWidth: 18,
+          itemStyle: {
+            borderRadius: [0, 5, 5, 0],
+            color: (params) => (values[params.dataIndex] < 0 ? chartColor("--blue", "#2b6fb3") : chartColor("--coral", "#ec635c"))
+          },
+          label: {
+            show: true,
+            position: "right",
+            formatter: (params) => {
+              const item = chart.data[params.dataIndex];
+              return item.percent == null ? formatNumber(item.value) : `${formatNumber(item.value)} / ${item.percent}%`;
+            }
+          }
+        }
+      ]
+    };
+  }
+
+  if (chart.type === "groupedBar") {
+    return {
+      ...option,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      xAxis: { type: "category", data: chart.categories, axisTick: { show: false }, axisLine: { lineStyle: { color: "#9eb7b2" } } },
+      yAxis: { type: "value", name: chart.yLabel || "", max: 100, axisLine: { lineStyle: { color: "#9eb7b2" } }, splitLine: { lineStyle: { color: "rgba(158, 183, 178, 0.28)" } } },
+      series: chart.series.map((entry) => ({ name: entry.name, type: "bar", data: entry.values, barMaxWidth: 22, label: { show: true, position: "top", formatter: "{c}%" } }))
+    };
+  }
+
+  if (chart.type === "forest") {
+    return {
+      ...option,
+      grid: { left: 170, right: 40, top: 30, bottom: 42, containLabel: true },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const item = chart.data[params[0].dataIndex];
+          return `${escapeHtml(item.label)}<br />HR ${item.value} (${item.low}-${item.high})<br />p = ${escapeHtml(item.p)}`;
+        }
+      },
+      xAxis: { type: "value", name: chart.xLabel, nameLocation: "middle", nameGap: 30, axisLine: { lineStyle: { color: "#9eb7b2" } }, splitLine: { lineStyle: { color: "rgba(158, 183, 178, 0.28)" } } },
+      yAxis: { type: "category", inverse: true, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: "#9eb7b2" } } },
+      series: [
+        {
+          type: "bar",
+          data: values,
+          barMaxWidth: 18,
+          itemStyle: { borderRadius: [0, 5, 5, 0], color: chartColor("--green", "#0f473d") },
+          label: { show: true, position: "right", formatter: (params) => `HR ${params.value}` }
+        }
+      ]
+    };
+  }
+
+  return {
+    ...option,
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    xAxis: { type: "category", data: labels, axisLabel: { interval: 0, rotate: labels.length > 4 ? 28 : 0 }, axisTick: { show: false }, axisLine: { lineStyle: { color: "#9eb7b2" } } },
+    yAxis: { type: "value", name: chart.yLabel || "", axisLine: { lineStyle: { color: "#9eb7b2" } }, splitLine: { lineStyle: { color: "rgba(158, 183, 178, 0.28)" } } },
+    series: [
+      {
+        type: "bar",
+        data: values,
+        barMaxWidth: 34,
+        itemStyle: { borderRadius: [5, 5, 0, 0], color: chartColor("--green", "#0f473d") },
+        label: { show: true, position: "top", formatter: (params) => formatNumber(params.value) }
+      }
+    ]
+  };
+}
+
+function renderDataCharts(section) {
+  disposeDataCharts();
+  if (!window.echarts) {
+    els.dataReport?.querySelectorAll(".echart-canvas").forEach((node) => {
+      node.innerHTML = `<p class="chart-fallback">Chart library unavailable. Use the matching notebook figure if this remains blank.</p>`;
+    });
+    return;
+  }
+
+  section.charts
+    .filter((chart) => !["image", "boxSummary"].includes(chart.type))
+    .forEach((chart) => {
+      const id = `coad-data-${chart.id}`;
+      const node = document.getElementById(id);
+      if (!node) return;
+      const instance = window.echarts.init(node, null, { renderer: "canvas" });
+      instance.setOption(chartOption(chart));
+      chartInstances.set(id, instance);
+    });
+}
+
+function renderDataSection() {
+  if (!els.dataFilters || !els.dataReport || !state.data?.coadDataPage) return;
+  const sections = state.data.coadDataPage.sections;
+  const section = sections.find((entry) => entry.key === state.selectedDataKey) || sections[0];
+  state.selectedDataKey = section.key;
+
+  els.dataFilters.innerHTML = sections
     .map(
       (entry) => `
-        <button type="button" data-key="${escapeHtml(entry.key)}" class="${entry.key === state.selectedDataKey ? "active" : ""}">
+        <button type="button" role="tab" aria-selected="${entry.key === section.key}" data-key="${escapeHtml(entry.key)}" class="${entry.key === section.key ? "active" : ""}">
           <span>${escapeHtml(entry.label)}</span>
-          <small>${escapeHtml(entry.description)}</small>
         </button>
       `
     )
@@ -173,69 +372,35 @@ function renderDataSection() {
     });
   });
 
-  els.dataDefinition.innerHTML = `
-    <h3>${escapeHtml(item.title)}</h3>
-    <p><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.plainDefinition)}</p>
-    <p><strong>Feature matrix:</strong> rows are samples, columns are measurable features.</p>
-    <dl>
-      <div><dt>Sample count</dt><dd>${item.sampleCount ? formatNumber(item.sampleCount) : "Project summary"}</dd></div>
-      <div><dt>Feature count</dt><dd>${item.featureCount ? formatNumber(item.featureCount) : "Not displayed as a raw table"}</dd></div>
-      <div><dt>Note</dt><dd>${escapeHtml(item.note)}</dd></div>
-    </dl>
+  els.dataReport.innerHTML = `
+    <header class="data-report-head">
+      <span>${escapeHtml(section.sourceReport)}</span>
+      <h1>${escapeHtml(section.title)}</h1>
+      <p>${escapeHtml(section.summary)}</p>
+    </header>
+    <div class="data-definition-note">
+      <strong>Plain meaning</strong>
+      <p>${escapeHtml(section.plainDefinition)}</p>
+    </div>
+    <div class="data-metric-grid">
+      ${section.metrics
+        .map(
+          (metric) => `
+            <article>
+              <span>${escapeHtml(metric.label)}</span>
+              <strong>${typeof metric.value === "number" ? formatNumber(metric.value) : escapeHtml(metric.value)}</strong>
+              <p>${escapeHtml(metric.note)}</p>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+    <div class="data-chart-grid">
+      ${section.charts.map(chartCardHtml).join("")}
+    </div>
   `;
 
-  if (els.sampleSummary) {
-    els.sampleSummary.innerHTML = `
-      <article><i class="dot tumor"></i><strong>${formatNumber(rna.tumorSamples)}</strong><span>Tumor samples</span></article>
-      <article><i class="dot normal"></i><strong>${formatNumber(rna.normalSamples)}</strong><span>Normal samples</span></article>
-      <article><i class="dot total"></i><strong>${formatNumber(rna.tumorSamples + rna.normalSamples)}</strong><span>Total samples</span></article>
-    `;
-  }
-
-  if (document.body.classList.contains("page-data")) {
-    els.sampleBars.classList.add("trend-chart");
-    els.sampleBars.innerHTML = `
-      <svg viewBox="0 0 620 250" role="img" aria-label="Tumor and normal sample trend chart">
-        <defs>
-          <linearGradient id="tumorFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stop-color="#ec635c" stop-opacity="0.38" />
-            <stop offset="1" stop-color="#ec635c" stop-opacity="0.08" />
-          </linearGradient>
-          <linearGradient id="normalFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stop-color="#2b6fb3" stop-opacity="0.28" />
-            <stop offset="1" stop-color="#2b6fb3" stop-opacity="0.05" />
-          </linearGradient>
-        </defs>
-        <g class="grid-lines">
-          <path d="M48 30H590M48 70H590M48 110H590M48 150H590M48 190H590" />
-        </g>
-        <path class="area tumor-area" d="M48 196 L88 176 L128 166 L168 146 L208 130 L248 106 L288 84 L328 66 L368 54 L408 44 L448 38 L488 32 L528 28 L590 22 L590 216 L48 216Z" />
-        <path class="line tumor-line" d="M48 196 L88 176 L128 166 L168 146 L208 130 L248 106 L288 84 L328 66 L368 54 L408 44 L448 38 L488 32 L528 28 L590 22" />
-        <path class="area normal-area" d="M48 208 L88 205 L128 202 L168 199 L208 196 L248 190 L288 188 L328 184 L368 182 L408 181 L448 180 L488 178 L528 176 L590 174 L590 216 L48 216Z" />
-        <path class="line normal-line" d="M48 208 L88 205 L128 202 L168 199 L208 196 L248 190 L288 188 L328 184 L368 182 L408 181 L448 180 L488 178 L528 176 L590 174" />
-        <g class="axis-labels">
-          <text x="42" y="28">300</text><text x="42" y="108">150</text><text x="42" y="214">0</text>
-          <text x="48" y="238">Tumor</text><text x="540" y="238">Normal</text>
-        </g>
-      </svg>
-    `;
-  } else {
-    const max = Math.max(rna.tumorSamples, rna.normalSamples);
-    els.sampleBars.innerHTML = [
-      { label: "Tumor", value: rna.tumorSamples, className: "tumor" },
-      { label: "Normal", value: rna.normalSamples, className: "normal" }
-    ]
-      .map(
-        (bar) => `
-          <div class="sample-row">
-            <span>${escapeHtml(bar.label)}</span>
-            <div><i class="${bar.className}" style="width: ${(bar.value / max) * 100}%"></i></div>
-            <strong>${formatNumber(bar.value)}</strong>
-          </div>
-        `
-      )
-      .join("");
-  }
+  renderDataCharts(section);
 }
 
 function renderWorkflow() {
@@ -572,6 +737,7 @@ async function loadContact() {
 function bindEvents() {
   setActiveNav();
   window.addEventListener("hashchange", setActiveNav);
+  window.addEventListener("resize", resizeCharts);
   if (els.menuButton && els.nav) {
     els.menuButton.addEventListener("click", () => {
       const expanded = els.menuButton.getAttribute("aria-expanded") === "true";
@@ -614,7 +780,7 @@ function bindEvents() {
     const name = form.get("name") || "Website visitor";
     const from = form.get("email") || "";
     const message = form.get("message") || "";
-    const subject = encodeURIComponent("COAD Cancer Predictor feedback");
+    const subject = encodeURIComponent("COAD Project feedback");
     const body = encodeURIComponent(`Name: ${name}\nEmail: ${from}\n\n${message}`);
     window.location.href = `mailto:${state.contactEmail}?subject=${subject}&body=${body}`;
   });

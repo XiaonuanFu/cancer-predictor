@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Prediction model page for the COAD Project research website."
+    />
+    <title>Model | COAD Project</title>
+    <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="page-section page-model">
+    <header class="site-header project-header">
+      <a class="brand" href="/" aria-label="COAD Project home">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span><span class="brand-title">COAD Project</span></span>
+      </a>
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav class="nav" id="primary-nav" aria-label="Primary navigation">
+        <a href="/" data-nav="home">Overview</a>
+        <a href="/data.html" data-nav="data">COAD Data</a>
+        <a href="/workflow.html" data-nav="workflow">Workflow</a>
+        <a href="/model.html" data-nav="model">Model</a>
+        <a href="/proteins.html" data-nav="proteins">Proteins</a>
+        <a href="/chembl.html" data-nav="chembl">ChEMBL</a>
+        <a href="/glossary.html" data-nav="glossary">Glossary</a>
+        <a href="/sources.html" data-nav="sources">Sources</a>
+        <a href="/contact.html" data-nav="contact">Contact</a>
+      </nav>
+    </header>
+
+    <main class="screen-page">
+      <section class="section-band model-section screen-model" id="model">
+        <div class="section-heading screen-heading">
+          <span class="section-kicker">Model</span>
+          <h1>Prediction Model</h1>
+          <p>COAD tumor vs normal classification for exploratory research only.</p>
+        </div>
+        <div class="model-layout">
+          <aside class="model-rail">
+            <h2 class="micro-heading">Models</h2>
+            <div class="choice-stack" id="model-tabs" role="tablist" aria-label="Model choices"></div>
+            <h2 class="micro-heading view-label">View</h2>
+            <div class="choice-stack compact" id="model-views" role="tablist" aria-label="Model views">
+              <button type="button" class="active" data-view="metrics">Metrics</button>
+              <button type="button" data-view="matrix">Confusion matrix</button>
+              <button type="button" data-view="features">Important features</button>
+            </div>
+          </aside>
+          <div class="model-content">
+            <div class="metrics-grid" id="metrics-grid"></div>
+            <div class="model-panels">
+              <article class="matrix-card" id="confusion-panel"></article>
+              <article class="features-card">
+                <div class="panel-head">
+                  <h2>Top Important Features</h2>
+                  <label class="search-field">
+                    <span>Search genes or features</span>
+                    <input id="feature-search" type="search" placeholder="Search genes or features" />
+                  </label>
+                </div>
+                <div class="feature-list" id="feature-list" aria-live="polite"></div>
+              </article>
+            </div>
+            <p class="limitation" id="model-limitation"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="page-footer">This page explains a research model. It is not for medical diagnosis.</footer>
+    <script src="/app.js"></script>
+  </body>
+</html>

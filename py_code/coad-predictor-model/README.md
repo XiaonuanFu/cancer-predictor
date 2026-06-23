@@ -14,7 +14,7 @@ The model is exploratory and research-only. Tumor and normal expression sources 
 From the repository root on the host:
 
 ```bash
-rsync -a --delete code/coad-predictor-model/ docker_storage/jupyter/coad-predictor-model/
+rsync -a --delete py_code/coad-predictor-model/ docker_storage/jupyter/coad-predictor-model/
 docker exec -i bio-jupyter bash -lc "cd /workspace/coad-predictor-model && python3 -m src.pipeline all"
 ```
 

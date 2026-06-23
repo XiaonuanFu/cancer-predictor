@@ -13,7 +13,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = (
     ROOT
-    / "code"
     / "coad-predictor-model"
     / "reports"
     / "coad_pancanatlas_mutation_landscape_report.ipynb"
@@ -73,17 +72,18 @@ def build_notebook():
             """
             ## 1. Setup
 
-            The notebook reads database settings from environment variables. The password is intentionally not written into this file.
+            The notebook reads database settings from environment variables first. If they are not set, it uses the local project settings in `src/config.py`.
 
-            Required environment variable: `PGPASSWORD`.
+            Optional environment variables: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`.
 
-            Optional environment variables: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`.
+            If you see a database password error, run this notebook from the `coad-predictor-model` project folder or set `PGPASSWORD` in the Jupyter environment.
             """
         ),
         code(
             '''
             from pathlib import Path
             import os
+            import sys
             import warnings
 
             import numpy as np
@@ -99,41 +99,84 @@ def build_notebook():
             pd.set_option("display.max_columns", 50)
             pd.set_option("display.max_rows", 80)
 
-            DB_HOST = os.environ.get("PGHOST", "postgres")
-            DB_PORT = int(os.environ.get("PGPORT", "5432"))
-            DB_NAME = os.environ.get("PGDATABASE", "bio")
-            DB_USER = os.environ.get("PGUSER", "bio")
-            DB_PASSWORD = os.environ.get("PGPASSWORD")
+            REPORT_DIR = Path.cwd()
+            if REPORT_DIR.name != "reports":
+                REPORT_DIR = Path("/workspace/coad-predictor-model/reports")
+            REPORT_DIR.mkdir(parents=True, exist_ok=True)
+            PROJECT_ROOT = REPORT_DIR.parent
+            if str(PROJECT_ROOT) not in sys.path:
+                sys.path.insert(0, str(PROJECT_ROOT))
 
-            if not DB_PASSWORD:
-                raise RuntimeError("Please set PGPASSWORD before running this notebook.")
+            try:
+                from src import config as project_config
+            except Exception:
+                project_config = None
 
-            DB_URL = URL.create(
-                "postgresql+psycopg2",
-                username=DB_USER,
-                password=DB_PASSWORD,
-                host=DB_HOST,
-                port=DB_PORT,
-                database=DB_NAME,
-            )
-            engine = create_engine(DB_URL)
+            def get_db_setting(env_names, config_name, default=None):
+                """Read a setting from environment variables, then project config."""
+                if isinstance(env_names, str):
+                    env_names = (env_names,)
+                for env_name in env_names:
+                    value = os.getenv(env_name)
+                    if value:
+                        return value
+                if project_config is not None and hasattr(project_config, config_name):
+                    return getattr(project_config, config_name)
+                return default
 
-            def read_sql(sql, params=None):
-                return pd.read_sql_query(sql, engine, params=params)
+            def configure_database():
+                """Create database helpers for this notebook session."""
+                global DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DB_URL, engine
+                global read_sql, run_sql, REPORT_DIR
 
-            def run_sql(sql):
-                with psycopg2.connect(
+                DB_HOST = get_db_setting(("PGHOST", "DB_HOST"), "DB_HOST", "bio-postgres")
+                DB_PORT = int(get_db_setting(("PGPORT", "DB_PORT"), "DB_PORT", 5432))
+                DB_NAME = get_db_setting(("PGDATABASE", "DB_NAME"), "DB_NAME", "bio")
+                DB_USER = get_db_setting(("PGUSER", "DB_USER"), "DB_USER", "bio")
+                DB_PASSWORD = get_db_setting(("PGPASSWORD", "DB_PASSWORD"), "DB_PASSWORD")
+
+                if not DB_PASSWORD:
+                    raise RuntimeError(
+                        "Database password was not found. Set PGPASSWORD or run from the "
+                        "coad-predictor-model project where src/config.py is available. / "
+                        "没有找到数据库密码。请设置 PGPASSWORD，或者从包含 src/config.py 的 "
+                        "coad-predictor-model 项目目录运行。"
+                    )
+
+                DB_URL = URL.create(
+                    "postgresql+psycopg2",
+                    username=DB_USER,
+                    password=DB_PASSWORD,
                     host=DB_HOST,
                     port=DB_PORT,
-                    dbname=DB_NAME,
-                    user=DB_USER,
-                    password=DB_PASSWORD,
-                ) as conn:
-                    conn.autocommit = True
-                    with conn.cursor() as cur:
-                        cur.execute(sql)
+                    database=DB_NAME,
+                )
+                engine = create_engine(DB_URL)
 
-            REPORT_DIR = Path.cwd()
+                def _read_sql(sql, params=None):
+                    return pd.read_sql_query(sql, engine, params=params)
+
+                def _run_sql(sql):
+                    with psycopg2.connect(
+                        host=DB_HOST,
+                        port=DB_PORT,
+                        dbname=DB_NAME,
+                        user=DB_USER,
+                        password=DB_PASSWORD,
+                    ) as conn:
+                        conn.autocommit = True
+                        with conn.cursor() as cur:
+                            cur.execute(sql)
+
+                read_sql = _read_sql
+                run_sql = _run_sql
+
+            def ensure_database_ready():
+                """Recover database helpers after a kernel restart or out-of-order run."""
+                if "read_sql" not in globals() or "run_sql" not in globals():
+                    configure_database()
+
+            configure_database()
             REPORT_DIR
             '''
         ),
@@ -148,6 +191,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             cache_sql = """
             DROP TABLE IF EXISTS bio_tcga._nb_coad_pancanatlas_maf_cache;
 
@@ -220,6 +267,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             summary = read_sql("""
             SELECT
               (SELECT COUNT(*) FROM bio_tcga.tcga_cdr_tcga_cdr WHERE type = 'COAD')::int AS clinical_patients,
@@ -249,6 +300,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             variant_class = read_sql("""
             SELECT variant_classification AS label, COUNT(*)::int AS mutation_records
             FROM bio_tcga._nb_coad_pancanatlas_maf_cache
@@ -287,6 +342,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             tumor_sample_count = int(summary.loc[0, "tumor_samples_with_mutation_data"])
             top_genes = read_sql("""
             SELECT
@@ -335,6 +394,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             chromosome_counts = read_sql("""
             SELECT chromosome, COUNT(*)::int AS mutation_records
             FROM bio_tcga._nb_coad_pancanatlas_maf_cache
@@ -423,6 +486,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             burden = read_sql("""
             SELECT
               tumor_sample_barcode,
@@ -480,6 +547,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             top_gene_list = top_genes.head(15)["hugo_symbol"].tolist()
             sample_gene = read_sql("""
             SELECT tumor_sample_barcode, hugo_symbol, COUNT(*)::int AS mutation_records
@@ -520,6 +591,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             stage_gene = read_sql("""
             WITH stage_denominator AS (
               SELECT ajcc_stage, COUNT(DISTINCT tumor_sample_barcode)::numeric AS stage_samples
@@ -581,6 +656,10 @@ def build_notebook():
         ),
         code(
             '''
+            if "ensure_database_ready" not in globals():
+                raise RuntimeError("Please run Section 1. Setup first, then run this cell again. / 请先运行第 1 节 Setup，然后再运行这个单元。")
+            ensure_database_ready()
+
             key_gene_records = read_sql("""
             SELECT
               hugo_symbol,

@@ -39,9 +39,43 @@ interface DatasetSummaryItem {
   note: string;
 }
 
+interface CoadDataMetric {
+  label: string;
+  value: number | string;
+  note: string;
+}
+
+interface CoadDataChart {
+  id: string;
+  type: string;
+  title: string;
+  takeaway: string;
+  xLabel?: string;
+  yLabel?: string;
+  data?: unknown[];
+  categories?: string[];
+  series?: unknown[];
+  imageSrc?: string;
+  imageAlt?: string;
+}
+
+interface CoadDataSection {
+  key: string;
+  label: string;
+  title: string;
+  sourceReport: string;
+  summary: string;
+  plainDefinition: string;
+  metrics: CoadDataMetric[];
+  charts: CoadDataChart[];
+}
+
 interface SiteData {
   project: ProjectSummary;
   datasetSummary: DatasetSummaryItem[];
+  coadDataPage: {
+    sections: CoadDataSection[];
+  };
   workflowSteps: unknown[];
   model: Record<string, unknown>;
   proteins: unknown[];

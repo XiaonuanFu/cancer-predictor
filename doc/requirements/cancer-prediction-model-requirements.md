@@ -35,7 +35,7 @@ Therefore, this project should not be defined as "multi-cancer recognition" or "
 - `train/test split` and random seeds have no special project constraint. Use `test_size=0.2` and `random_state=42` by default, and save the split results.
 - Baseline models are limited to logistic regression, random forest, and linear SVM. XGBoost is not required for the first version.
 - The main deliverable is a research report, with notebooks and Python scripts as reproducible support.
-- The model source directory should be `code/coad-predictor-model/`. It should also be published to the runnable Jupyter container directory `/workspace/coad-predictor-model/`.
+- The model source directory should be `py_code/coad-predictor-model/`. It should also be published to the runnable Jupyter container directory `/workspace/coad-predictor-model/`.
 - Report language should now be English. Key scientific terms and model metrics should remain in their standard English form.
 
 ## Project Positioning
@@ -249,15 +249,15 @@ Runtime requirements:
 
 Code directory requirements:
 
-- Repository source directory: `code/coad-predictor-model/`
+- Repository source directory: `py_code/coad-predictor-model/`
 - Jupyter runtime directory: `/workspace/coad-predictor-model/`
 - Host-side Jupyter publish directory: `docker_storage/jupyter/coad-predictor-model/`
-- `code/coad-predictor-model/` is the primary maintenance location. After changes, sync it to `docker_storage/jupyter/coad-predictor-model/` so the Jupyter container can run it directly.
+- `py_code/coad-predictor-model/` is the primary maintenance location. After changes, sync it to `docker_storage/jupyter/coad-predictor-model/` so the Jupyter container can run it directly.
 
 Suggested repository source layout:
 
 ```text
-code/coad-predictor-model/
+py_code/coad-predictor-model/
   notebooks/                 Jupyter notebooks for exploration and training
   src/                       reusable Python modules
   reports/                   lightweight model reports and notes
@@ -288,7 +288,7 @@ Implementation requirements:
 Suggested publish command:
 
 ```bash
-rsync -a --delete code/coad-predictor-model/ docker_storage/jupyter/coad-predictor-model/
+rsync -a --delete py_code/coad-predictor-model/ docker_storage/jupyter/coad-predictor-model/
 ```
 
 ## Python Data Preparation Requirements

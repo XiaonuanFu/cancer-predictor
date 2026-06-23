@@ -23,9 +23,9 @@ description: Project-specific conventions and memory for Nancy's cancer predicto
 ## Project Directory Rules
 
 - `bio-exercise/`: FASTQ scripts. FASTQ is a sequencing read file format (a text format storing DNA reads and quality scores / 存储 DNA 读段和质量分数的文本格式).
-- `code/`: general code scripts.
+- `py_code/`: general Python code scripts.
 - `ml_study/`: machine learning scripts. Machine learning means training a program to find patterns from data (让程序从数据中学习规律).
-- `script/`: data processing scripts. Put data processing code and Jupyter-related code here unless an existing local pattern clearly says otherwise.
+- `py_code/script/`: data processing scripts. Put data processing code and Jupyter-related code here unless an existing local pattern clearly says otherwise.
 - `data/`: sample data only. Do not put scripts here. Do not commit this data to GitHub.
 - `doc/`: design documents and requirement documents.
 - `docker_storage/`: local container storage to keep data after containers stop.
@@ -35,7 +35,7 @@ description: Project-specific conventions and memory for Nancy's cancer predicto
 
 ## File Placement Rules
 
-- Put all Jupyter notebooks and Jupyter support code in the local project directories, especially `script/` when they process data.
+- Put all Jupyter notebooks and Jupyter support code in the local project directories, especially `py_code/script/` when they process data.
 - Put all `web_code` files in the local `web_code/` directory.
 - Also make sure required Jupyter and `web_code` files are available inside the relevant container, using the project's existing mount or copy pattern.
 - Keep data out of `public/` and out of GitHub unless the user explicitly says a small sample is safe to publish.

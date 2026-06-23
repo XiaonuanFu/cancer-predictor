@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="COAD PanCanAtlas data page for the COAD Project research website."
+      content="Glossary page for the COAD Project research website."
     />
-    <title>COAD Data | COAD Project</title>
+    <title>Glossary | COAD Project</title>
     <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="page-section page-data">
+  <body class="page-section page-glossary">
     <header class="site-header project-header">
       <a class="brand" href="/" aria-label="COAD Project home">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
@@ -31,19 +31,29 @@
       </nav>
     </header>
 
-    <main class="screen-page">
-      <section class="section-band data-screen" id="coad-data">
-        <div class="data-layout">
-          <aside class="data-sidebar" aria-label="COAD report sections">
-            <div class="choice-stack data-choice-stack" id="data-filters" role="tablist" aria-label="COAD data type filters"></div>
+    <main class="screen-page resources-screen">
+      <section class="section-band glossary-section" id="glossary">
+        <div class="section-heading screen-heading">
+          <span class="section-kicker">Glossary</span>
+          <h1>Glossary Of Biology And Computer Science Terms</h1>
+        </div>
+        <div class="glossary-layout">
+          <aside>
+            <label class="search-field">
+              <span>Search terms</span>
+              <input id="glossary-search" type="search" placeholder="Search terms" />
+            </label>
+            <div class="category-list" id="glossary-categories"></div>
+            <div class="helper-card">
+              <strong>Click a term to expand its definition and context.</strong>
+            </div>
           </aside>
-          <article class="data-report-panel" id="data-report" aria-live="polite"></article>
+          <div class="accordion-list" id="glossary-list" aria-live="polite"></div>
         </div>
       </section>
     </main>
 
-    <footer class="page-footer">COAD Project is an educational project for exploratory research.</footer>
-    <script src="/vendor/echarts.min.js"></script>
+    <footer class="page-footer">Definitions are written for high-school research learning.</footer>
     <script src="/app.js"></script>
   </body>
 </html>
