@@ -104,6 +104,10 @@ function disposeDataCharts() {
 
 function resizeCharts() {
   chartInstances.forEach((chart) => chart.resize());
+  if (document.body.classList.contains("page-data") && state.data?.coadDataPage) {
+    window.clearTimeout(resizeCharts.timer);
+    resizeCharts.timer = window.setTimeout(renderDataSection, 140);
+  }
 }
 
 async function fetchJson(url) {
@@ -186,7 +190,7 @@ function chartCardHtml(chart) {
   const chartId = `coad-data-${chart.id}`;
   const media =
     chart.type === "image"
-      ? `<figure class="notebook-figure"><img src="${escapeHtml(chart.imageSrc)}" alt="${escapeHtml(chart.imageAlt)}" loading="lazy" /></figure>`
+      ? `<figure class="notebook-figure"><img src="${escapeHtml(chart.imageSrc)}" alt="${escapeHtml(chart.imageAlt)}" /></figure>`
       : chart.type === "boxSummary"
         ? `<div class="tmb-summary">${chart.data
             .map((item) => `<article><span>${escapeHtml(item.label)}</span><strong>${formatNumber(item.value)}</strong></article>`)
@@ -194,7 +198,7 @@ function chartCardHtml(chart) {
         : `<div class="echart-canvas" id="${escapeHtml(chartId)}" role="img" aria-label="${escapeHtml(chart.title)}"></div>`;
 
   return `
-    <section class="data-chart-card">
+    <section class="data-chart-card ${chart.type === "image" ? "notebook-card" : ""}">
       <div class="data-chart-head">
         <h3>${escapeHtml(chart.title)}</h3>
         <span>${chart.type === "image" ? "Notebook figure" : chart.type === "boxSummary" ? "Summary" : "ECharts"}</span>
@@ -287,6 +291,45 @@ function chartOption(chart) {
   }
 
   if (chart.type === "forest") {
+    const narrow = window.matchMedia("(max-width: 620px)").matches;
+    if (narrow) {
+      const shortLabels = ["Age/10y", "Male/Female", "Stage level"];
+      return {
+        ...option,
+        grid: { left: 46, right: 18, top: 22, bottom: 70, containLabel: true },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "shadow" },
+          formatter: (params) => {
+            const item = chart.data[params[0].dataIndex];
+            return `${escapeHtml(item.label)}<br />HR ${item.value} (${item.low}-${item.high})<br />p = ${escapeHtml(item.p)}`;
+          }
+        },
+        xAxis: {
+          type: "category",
+          data: shortLabels,
+          axisLabel: { interval: 0, rotate: 18 },
+          axisTick: { show: false },
+          axisLine: { lineStyle: { color: "#9eb7b2" } }
+        },
+        yAxis: {
+          type: "value",
+          name: "HR",
+          axisLine: { lineStyle: { color: "#9eb7b2" } },
+          splitLine: { lineStyle: { color: "rgba(158, 183, 178, 0.28)" } }
+        },
+        series: [
+          {
+            type: "bar",
+            data: values,
+            barMaxWidth: 34,
+            itemStyle: { borderRadius: [5, 5, 0, 0], color: chartColor("--green", "#0f473d") },
+            label: { show: true, position: "top", formatter: (params) => `HR ${params.value}` }
+          }
+        ]
+      };
+    }
+
     return {
       ...option,
       grid: { left: 170, right: 40, top: 30, bottom: 42, containLabel: true },
@@ -374,9 +417,11 @@ function renderDataSection() {
 
   els.dataReport.innerHTML = `
     <header class="data-report-head">
-      <span>${escapeHtml(section.sourceReport)}</span>
+      <a class="data-source-link" href="${escapeHtml(section.notebookUrl)}" target="_blank" rel="noopener noreferrer">
+        View notebook on GitHub
+      </a>
       <h1>${escapeHtml(section.title)}</h1>
-      <p>${escapeHtml(section.summary)}</p>
+      <p><strong>${escapeHtml(section.sourceReport)}</strong> ${escapeHtml(section.summary)}</p>
     </header>
     <div class="data-definition-note">
       <strong>Plain meaning</strong>

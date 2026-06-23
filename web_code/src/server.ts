@@ -64,6 +64,7 @@ interface CoadDataSection {
   label: string;
   title: string;
   sourceReport: string;
+  notebookUrl: string;
   summary: string;
   plainDefinition: string;
   metrics: CoadDataMetric[];

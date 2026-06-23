@@ -52,6 +52,7 @@
         "label": "Clinical",
         "title": "Clinical data",
         "sourceReport": "coad_clinical_survival_report",
+        "notebookUrl": "https://github.com/XiaonuanFu/cancer-predictor/blob/main/py_code/coad-predictor-model/reports/coad_clinical_survival_report.ipynb",
         "summary": "Patient and disease information used to describe COAD (colon adenocarcinoma, a type of colon cancer) survival patterns.",
         "plainDefinition": "Clinical data means patient and disease information, such as age, sex, cancer stage, and survival time.",
         "metrics": [
@@ -76,6 +77,14 @@
               {"label": "70-79", "value": 126},
               {"label": "80+", "value": 88}
             ]
+          },
+          {
+            "id": "clinical-age-notebook",
+            "type": "image",
+            "title": "COAD patient age distribution",
+            "takeaway": "This Jupyter figure shows the full age distribution chart used in the clinical report.",
+            "imageSrc": "/assets/coad-data/clinical-age-distribution.png",
+            "imageAlt": "COAD patient age distribution chart from the clinical survival notebook."
           },
           {
             "id": "clinical-stage",
@@ -117,6 +126,14 @@
             "categories": ["Stage I", "Stage II", "Stage III", "Stage IV"]
           },
           {
+            "id": "clinical-overall-survival-stage",
+            "type": "image",
+            "title": "Overall survival by simplified pathologic stage",
+            "takeaway": "This Jupyter figure shows that later simplified pathologic stages have lower overall survival in this report.",
+            "imageSrc": "/assets/coad-data/clinical-overall-survival-stage.png",
+            "imageAlt": "Overall survival by simplified pathologic stage from the clinical survival notebook."
+          },
+          {
             "id": "clinical-prognosis",
             "type": "forest",
             "title": "Factors related to prognosis",
@@ -135,6 +152,7 @@
         "label": "RNA expression",
         "title": "RNA expression",
         "sourceReport": "coad_gene_expression_analysis_report",
+        "notebookUrl": "https://github.com/XiaonuanFu/cancer-predictor/blob/main/py_code/coad-predictor-model/reports/coad_gene_expression_analysis_report.ipynb",
         "summary": "Gene activity measurements comparing COAD tumor samples with normal colon-related samples.",
         "plainDefinition": "RNA expression means how active genes are in a sample. Higher expression means the gene is producing more RNA signal.",
         "metrics": [
@@ -228,6 +246,7 @@
         "label": "Mutation",
         "title": "Mutation data",
         "sourceReport": "coad_pancanatlas_mutation_landscape_report",
+        "notebookUrl": "https://github.com/XiaonuanFu/cancer-predictor/blob/main/py_code/coad-predictor-model/reports/coad_pancanatlas_mutation_landscape_report.ipynb",
         "summary": "DNA sequence changes found in COAD tumor samples, including variant types, hotspot positions, and frequently mutated genes.",
         "plainDefinition": "Mutation data means DNA sequence changes found in tumor samples. A hotspot is a mutation position that appears repeatedly.",
         "metrics": [
