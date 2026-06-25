@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Protein structure and mutation viewer page for the COAD Project research website."
+      content="Mutation analysis page for the COAD Project research website, combining protein mutation context and ChEMBL compound formulas."
     />
-    <title>Proteins | COAD Project</title>
+    <title>Mutation Analysis | COAD Project</title>
     <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="page-section page-proteins">
+  <body class="page-section page-mutation page-proteins page-chembl">
     <header class="site-header project-header">
       <a class="brand" href="/" aria-label="COAD Project home">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
@@ -21,20 +21,18 @@
       <nav class="nav" id="primary-nav" aria-label="Primary navigation">
         <a href="/" data-nav="home">Overview</a>
         <a href="/data.html" data-nav="data">COAD Data</a>
-        <a href="/workflow.html" data-nav="workflow">Workflow</a>
         <a href="/model.html" data-nav="model">Model</a>
-        <a href="/proteins.html" data-nav="proteins">Proteins</a>
-        <a href="/chembl.html" data-nav="chembl">ChEMBL</a>
+        <a href="/mutation-analysis.html" data-nav="mutation">Mutation Analysis</a>
         <a href="/glossary.html" data-nav="glossary">Glossary</a>
         <a href="/sources.html" data-nav="sources">Sources</a>
-        <a href="/contact.html" data-nav="contact">Contact</a>
+        <a href="/about.html" data-nav="about">About</a>
       </nav>
     </header>
 
     <main class="screen-page biology-screen">
       <section class="section-band protein-section" id="proteins">
         <div class="section-heading screen-heading">
-          <span class="section-kicker">Proteins</span>
+          <span class="section-kicker">Mutation Analysis</span>
           <h1>Protein Structure And Mutation Site Viewer</h1>
           <p>AlphaFold structures are predicted protein shapes, not always experimentally measured structures.</p>
         </div>
@@ -53,9 +51,50 @@
           <article class="mutation-card" id="mutation-card"></article>
         </div>
       </section>
+
+      <section class="section-band chembl-section" id="chembl">
+        <div class="section-heading screen-heading">
+          <span class="section-kicker">ChEMBL Context</span>
+          <h2>COAD Compound Formulas</h2>
+          <p>ChEMBL is a public database of bioactive molecules and drug-like compounds.</p>
+        </div>
+        <div class="table-tools">
+          <label class="search-field">
+            <span>Search compound or ChEMBL ID</span>
+            <input id="compound-search" type="search" placeholder="Search compound or ChEMBL ID" />
+          </label>
+          <label>
+            <span>Evidence label</span>
+            <select id="compound-filter"></select>
+          </label>
+          <label>
+            <span>Sort by name</span>
+            <select id="compound-sort">
+              <option value="name">Sort by name</option>
+              <option value="formula">Sort by molecular formula</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Compound</th>
+                <th>ChEMBL ID</th>
+                <th>Molecular formula</th>
+                <th>Evidence</th>
+                <th>Source note</th>
+              </tr>
+            </thead>
+            <tbody id="compound-table"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
 
-    <footer class="page-footer">Protein links open public scientific resources in new tabs.</footer>
+    <footer class="page-footer">
+      Protein links open public scientific resources. Compounds are research context, not treatment recommendations.
+    </footer>
     <script src="/app.js"></script>
   </body>
 </html>

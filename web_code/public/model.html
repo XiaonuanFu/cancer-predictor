@@ -21,53 +21,120 @@
       <nav class="nav" id="primary-nav" aria-label="Primary navigation">
         <a href="/" data-nav="home">Overview</a>
         <a href="/data.html" data-nav="data">COAD Data</a>
-        <a href="/workflow.html" data-nav="workflow">Workflow</a>
         <a href="/model.html" data-nav="model">Model</a>
-        <a href="/proteins.html" data-nav="proteins">Proteins</a>
-        <a href="/chembl.html" data-nav="chembl">ChEMBL</a>
+        <a href="/mutation-analysis.html" data-nav="mutation">Mutation Analysis</a>
         <a href="/glossary.html" data-nav="glossary">Glossary</a>
         <a href="/sources.html" data-nav="sources">Sources</a>
-        <a href="/contact.html" data-nav="contact">Contact</a>
+        <a href="/about.html" data-nav="about">About</a>
       </nav>
     </header>
 
-    <main class="screen-page">
+    <main class="screen-page model-page">
       <section class="section-band model-section screen-model" id="model">
-        <div class="section-heading screen-heading">
-          <span class="section-kicker">Model</span>
-          <h1>Prediction Model</h1>
-          <p>COAD tumor vs normal classification for exploratory research only.</p>
-        </div>
-        <div class="model-layout">
-          <aside class="model-rail">
-            <h2 class="micro-heading">Models</h2>
-            <div class="choice-stack" id="model-tabs" role="tablist" aria-label="Model choices"></div>
-            <h2 class="micro-heading view-label">View</h2>
-            <div class="choice-stack compact" id="model-views" role="tablist" aria-label="Model views">
-              <button type="button" class="active" data-view="metrics">Metrics</button>
-              <button type="button" data-view="matrix">Confusion matrix</button>
-              <button type="button" data-view="features">Important features</button>
-            </div>
-          </aside>
-          <div class="model-content">
-            <div class="metrics-grid" id="metrics-grid"></div>
-            <div class="model-panels">
-              <article class="matrix-card" id="confusion-panel"></article>
-              <article class="features-card">
-                <div class="panel-head">
-                  <h2>Top Important Features</h2>
-                  <label class="search-field">
-                    <span>Search genes or features</span>
-                    <input id="feature-search" type="search" placeholder="Search genes or features" />
-                  </label>
-                </div>
-                <div class="feature-list" id="feature-list" aria-live="polite"></div>
-              </article>
-            </div>
-            <p class="limitation" id="model-limitation"></p>
+        <div class="model-hero-grid">
+          <div class="section-heading screen-heading model-hero-copy">
+            <h1>Prediction Model</h1>
+            <p>
+              I built this prediction model because it connects my interests in biology and computer science.
+              Programming can be more than a way to solve logic problems; it can also become a scientific tool
+              for modeling biological patterns.
+            </p>
+            <p>
+              Cancer research now produces large sequencing datasets, and these datasets make it possible to
+              train programs that search for disease-related signals. This project explores how machine learning
+              can classify COAD tumor and normal samples from gene expression data.
+            </p>
           </div>
         </div>
       </section>
+
+      <section class="section-band model-process-section" aria-labelledby="model-process-title">
+        <div class="model-process-grid">
+          <article class="model-process-card">
+            <span class="section-kicker">Process</span>
+            <h2 id="model-process-title">From 100% Accuracy To A Cleaner TCGA-Only Model</h2>
+            <p>
+              My first model combined TCGA data with UCSC Xena data, and the result showed 100% accuracy.
+              Although this looked impressive, it made the model less trustworthy because it might have learned
+              dataset-source differences instead of real cancer biology.
+            </p>
+            <p>
+              After that, I chose to use only TCGA COAD data. This made the comparison cleaner, but it also
+              created a new limitation: the TCGA-only normal group has only 41 samples, compared with 471 tumor
+              samples.
+            </p>
+          </article>
+          <article class="model-process-card compact">
+            <h2>Terms Used Here</h2>
+            <dl>
+              <div>
+                <dt>Machine learning</dt>
+                <dd>Training a program to find patterns from data.</dd>
+              </div>
+              <div>
+                <dt>Batch effect</dt>
+                <dd>A technical difference caused by data being produced in different labs or pipelines.</dd>
+              </div>
+              <div>
+                <dt>Overfitting</dt>
+                <dd>When a model learns the training data too closely and may not work well on new data.</dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-band model-summary-section" aria-labelledby="model-summary-title">
+        <div class="section-heading compact-heading">
+          <span class="section-kicker">Dataset</span>
+          <h2 id="model-summary-title">TCGA-Only Model Dataset</h2>
+          <p>
+            These numbers belong to the Model page context. They should not be mixed with the separate COAD Data
+            page RNA expression report.
+          </p>
+        </div>
+        <div class="model-sample-grid" id="model-sample-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="section-band model-results-section" aria-labelledby="model-results-title">
+        <div class="section-heading compact-heading">
+          <span class="section-kicker">Results</span>
+          <h2 id="model-results-title">Three Baseline Models Compared Together</h2>
+          <p>
+            Metrics, confusion matrices, and important features are shown together so the three machine learning
+            models can be compared on one page.
+          </p>
+        </div>
+        <p class="model-score-warning">
+          Perfect or near-perfect scores are not automatic proof that a model is ready for diagnosis. High scores
+          can happen when the test set is small, the task is too easy, or hidden data-source differences exist.
+        </p>
+        <div class="model-comparison" id="model-comparison" aria-live="polite"></div>
+        <div class="model-limits-grid">
+          <article class="limitation-card">
+            <h2>Limitations</h2>
+            <ul id="model-limitation"></ul>
+          </article>
+          <article class="limitation-card">
+            <h2>What I Can Improve Next Time</h2>
+            <ul>
+              <li>Add more normal samples from carefully matched sources.</li>
+              <li>Test the model on an external validation dataset.</li>
+              <li>Check batch effects more carefully before trusting high scores.</li>
+              <li>Compare important genes with biological literature.</li>
+              <li>Report balanced accuracy, normal recall, and confusion matrices, not accuracy alone.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <aside class="model-notice model-bottom-notice" aria-label="Research-only notice">
+        <span>Research-only</span>
+        <p>
+          This page explains an educational model. It is not a medical diagnosis tool, and it should not be used
+          to decide treatment.
+        </p>
+      </aside>
     </main>
 
     <footer class="page-footer">This page explains a research model. It is not for medical diagnosis.</footer>

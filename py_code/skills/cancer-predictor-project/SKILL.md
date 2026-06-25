@@ -38,6 +38,7 @@ description: Project-specific conventions and memory for Nancy's cancer predicto
 - Put all Jupyter notebooks and Jupyter support code in the local project directories, especially `py_code/script/` when they process data.
 - Put all `web_code` files in the local `web_code/` directory.
 - Also make sure required Jupyter and `web_code` files are available inside the relevant container, using the project's existing mount or copy pattern.
+- After each web development task, sync the updated `web_code` files to the container that runs the Node service; do not leave changes only in the local directory.
 - Keep data out of `public/` and out of GitHub unless the user explicitly says a small sample is safe to publish.
 - Before creating a new directory, check whether an existing directory above already fits the work.
 
@@ -53,4 +54,4 @@ description: Project-specific conventions and memory for Nancy's cancer predicto
 - When editing code or notebooks, preserve existing project layout and do not move data into Git-tracked locations.
 - When writing analysis explanations, make the science understandable for a Grade 11 student and define advanced terms in parentheses.
 - When working with containers, check the existing Docker/container pattern before changing paths, mounts, ports, or storage.
-- When touching the web app, keep it in `web_code/` locally and verify it can run from the Jupyter container's Node service when practical.
+- When touching the web app, keep it in `web_code/` locally, sync it to the container after development, and verify it can run from the Jupyter container's Node service when practical.

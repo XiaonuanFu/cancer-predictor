@@ -2,8 +2,6 @@ const state = {
   data: null,
   selectedDataKey: "clinical",
   selectedStep: 1,
-  selectedModelKey: "random_forest",
-  selectedModelView: "metrics",
   selectedGene: "KRAS",
   compoundQuery: "",
   compoundEvidence: "all",
@@ -11,7 +9,7 @@ const state = {
   glossaryQuery: "",
   glossaryCategory: "all",
   sourceType: "all",
-  contactEmail: "contact@example.com"
+  contactEmail: "cookiekat987@gmail.com"
 };
 
 const els = {
@@ -25,12 +23,8 @@ const els = {
   sampleBars: document.querySelector("#sample-bars"),
   workflowLine: document.querySelector("#workflow-line"),
   workflowDetail: document.querySelector("#workflow-detail"),
-  modelTabs: document.querySelector("#model-tabs"),
-  modelViews: document.querySelector("#model-views"),
-  metricsGrid: document.querySelector("#metrics-grid"),
-  confusionPanel: document.querySelector("#confusion-panel"),
-  featureSearch: document.querySelector("#feature-search"),
-  featureList: document.querySelector("#feature-list"),
+  modelSampleGrid: document.querySelector("#model-sample-grid"),
+  modelComparison: document.querySelector("#model-comparison"),
   modelLimitation: document.querySelector("#model-limitation"),
   geneTabs: document.querySelector("#gene-tabs"),
   proteinFacts: document.querySelector("#protein-facts"),
@@ -124,13 +118,11 @@ function setActiveNav() {
     "/": "home",
     "/index.html": "home",
     "/data.html": "data",
-    "/workflow.html": "workflow",
     "/model.html": "model",
-    "/proteins.html": "proteins",
-    "/chembl.html": "chembl",
+    "/mutation-analysis.html": "mutation",
     "/glossary.html": "glossary",
     "/sources.html": "sources",
-    "/contact.html": "contact"
+    "/about.html": "about"
   };
   const page = pageMap[path] || "home";
   els.nav.querySelectorAll("a").forEach((link) => {
@@ -476,94 +468,131 @@ function renderWorkflow() {
   `;
 }
 
-function selectedModel() {
-  return state.data.model.metrics.find((item) => item.modelKey === state.selectedModelKey);
-}
-
-function renderModel() {
-  if (!els.modelTabs || !els.metricsGrid || !els.confusionPanel || !els.featureList) return;
-  const model = selectedModel();
-  els.modelTabs.innerHTML = state.data.model.metrics
-    .map(
-      (entry) => `
-        <button type="button" data-model="${escapeHtml(entry.modelKey)}" class="${entry.modelKey === state.selectedModelKey ? "active" : ""}">
-          <span>${escapeHtml(entry.modelName)}</span>
-          <small>${escapeHtml(entry.plainEnglish)}</small>
-        </button>
-      `
-    )
-    .join("");
-  els.modelTabs.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedModelKey = button.dataset.model;
-      renderModel();
-    });
-  });
-
-  const metrics = [
+function modelMetrics(model) {
+  return [
     { label: "Accuracy", value: model.accuracy, meaning: "Proportion of all predictions that are correct." },
+    { label: "Balanced accuracy", value: model.balancedAccuracy, meaning: "Average performance across tumor and normal classes." },
     { label: "Precision", value: model.precision, meaning: "Among predicted tumor samples, the proportion that are true tumor." },
     { label: "Recall", value: model.recall, meaning: "Among actual tumor samples, the proportion correctly identified." },
-    { label: "F1 score", value: model.f1, meaning: "Harmonic mean of precision and recall." },
-    { label: "ROC-AUC", value: model.rocAuc, meaning: "Ability to separate tumor from normal across thresholds." }
+    { label: "F1 score", value: model.f1, meaning: "A combined score using precision and recall." },
+    { label: "ROC-AUC", value: model.rocAuc, meaning: "How well the model separates tumor and normal across thresholds." }
   ];
-  els.metricsGrid.innerHTML = metrics
+}
+
+function featureDirectionLabel(direction) {
+  if (direction === "tree_importance") return "tree importance";
+  return direction.replace(/_/g, " ");
+}
+
+function modelFeatureNote(modelKey) {
+  if (modelKey === "random_forest") {
+    return "Feature importance shows how much the gene helped tree splits. It is relative within this model.";
+  }
+  return "Positive or negative weights show which direction the feature pushed the prediction.";
+}
+
+function renderModelSamples(modelData) {
+  if (!els.modelSampleGrid) return;
+  const samples = modelData.samples;
+  const items = [
+    { label: "Tumor samples", value: samples.tumor, note: "Primary tumor samples." },
+    { label: "Normal samples", value: samples.normal, note: "Solid tissue normal samples." },
+    { label: "Shared genes", value: samples.sharedGenes, note: "Before filtering." },
+    { label: "Model genes", value: samples.modelGenes, note: "After low-variance filtering." }
+  ];
+
+  els.modelSampleGrid.innerHTML = items
     .map(
-      (metric) => `
+      (item) => `
         <article>
-          <span>${escapeHtml(metric.label)}</span>
-          <strong>${formatScore(metric.value)}</strong>
-          <p>${escapeHtml(metric.meaning)}</p>
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${typeof item.value === "number" ? formatNumber(item.value) : escapeHtml(item.value)}</strong>
+          <p>${escapeHtml(item.note)}</p>
         </article>
       `
     )
     .join("");
-
-  const matrix = model.confusionMatrix;
-  const total = matrix.flat().reduce((sum, value) => sum + value, 0);
-  els.confusionPanel.innerHTML = `
-    <div class="panel-head"><h3>Confusion Matrix</h3><span>${escapeHtml(model.modelName)}</span></div>
-    <div class="matrix-grid" aria-label="Confusion matrix for ${escapeHtml(model.modelName)}">
-      <span></span><b>Predicted normal</b><b>Predicted tumor</b>
-      <b>Actual normal</b><strong>${matrix[0][0]}</strong><strong>${matrix[0][1]}</strong>
-      <b>Actual tumor</b><strong>${matrix[1][0]}</strong><strong>${matrix[1][1]}</strong>
-    </div>
-    <p>Total test samples: ${formatNumber(total)}. Green cells represent correct predictions.</p>
-  `;
-
-  renderFeatures();
-  if (els.modelLimitation) els.modelLimitation.textContent = state.data.model.limitations.join(" ");
-  if (els.modelViews) {
-    els.modelViews.querySelectorAll("button").forEach((button) => {
-      button.classList.toggle("active", button.dataset.view === state.selectedModelView);
-    });
-  }
 }
 
-function renderFeatures() {
-  if (!els.featureList) return;
-  const query = (els.featureSearch?.value || "").trim().toLowerCase();
-  const features = state.data.model.importantFeatures
-    .filter((feature) => feature.modelKey === state.selectedModelKey)
-    .filter((feature) => !query || `${feature.featureName} ${feature.direction}`.toLowerCase().includes(query))
-    .slice(0, 10);
-  const max = Math.max(...features.map((feature) => Math.abs(feature.importanceValue)), 0.001);
-
-  els.featureList.innerHTML =
+function renderModelCard(model, importantFeatures) {
+  const matrix = model.confusionMatrix;
+  const total = matrix.flat().reduce((sum, value) => sum + value, 0);
+  const features = importantFeatures.filter((feature) => feature.modelKey === model.modelKey).slice(0, 10);
+  const maxFeature = Math.max(...features.map((feature) => Math.abs(feature.importanceValue)), 0.001);
+  const featureItems =
     features
       .map(
         (feature) => `
           <article>
             <div>
               <strong>${escapeHtml(feature.featureName)}</strong>
-              <span>${escapeHtml(feature.direction.replace(/_/g, " "))}</span>
+              <span>${escapeHtml(featureDirectionLabel(feature.direction))}</span>
             </div>
-            <div class="feature-bar"><i style="width: ${(Math.abs(feature.importanceValue) / max) * 100}%"></i></div>
+            <div class="feature-bar"><i style="width: ${(Math.abs(feature.importanceValue) / maxFeature) * 100}%"></i></div>
             <small>${formatScore(Math.abs(feature.importanceValue))}</small>
           </article>
         `
       )
-      .join("") || `<p class="empty">No matching features.</p>`;
+      .join("") || `<p class="empty">No important features are available for this model yet.</p>`;
+
+  return `
+    <article class="model-card-full">
+      <div class="model-card-head">
+        <span>Baseline model</span>
+        <h3>${escapeHtml(model.modelName)}</h3>
+        <p>${escapeHtml(model.plainEnglish)}</p>
+      </div>
+      <div class="model-metrics-list">
+        ${modelMetrics(model)
+          .map(
+            (metric) => `
+              <div title="${escapeHtml(metric.meaning)}">
+                <span>${escapeHtml(metric.label)}</span>
+                <strong>${formatScore(metric.value)}</strong>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+      <div class="model-card-section">
+        <h4>Confusion Matrix</h4>
+        <div class="matrix-grid model-matrix" aria-label="Confusion matrix for ${escapeHtml(model.modelName)}">
+          <span></span><b>Predicted normal</b><b>Predicted tumor</b>
+          <b>Actual normal</b><strong>${matrix[0][0]}</strong><strong>${matrix[0][1]}</strong>
+          <b>Actual tumor</b><strong>${matrix[1][0]}</strong><strong>${matrix[1][1]}</strong>
+        </div>
+        <p>Total test samples: ${formatNumber(total)}. Diagonal cells are correct predictions.</p>
+      </div>
+      <div class="model-card-section">
+        <h4>Important Features</h4>
+        <p>${escapeHtml(modelFeatureNote(model.modelKey))}</p>
+        <div class="feature-list model-feature-list">${featureItems}</div>
+      </div>
+    </article>
+  `;
+}
+
+function renderModel() {
+  if (!state.data?.model) return;
+  const modelData = state.data.model;
+  renderModelSamples(modelData);
+
+  if (els.modelComparison) {
+    els.modelComparison.innerHTML = modelData.metrics
+      .map((model) => renderModelCard(model, modelData.importantFeatures))
+      .join("");
+  }
+
+  if (els.modelLimitation) {
+    const extraLimitations = [
+      "The classes are imbalanced: 471 tumor samples vs 41 normal samples.",
+      "The earlier TCGA + UCSC Xena 100% accuracy suggested possible overfitting or batch-effect learning.",
+      "Important genes are predictive signals, not proof that a gene causes cancer."
+    ];
+    els.modelLimitation.innerHTML = [...modelData.limitations, ...extraLimitations]
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join("");
+  }
 }
 
 function renderProteins() {
@@ -796,13 +825,6 @@ function bindEvents() {
       });
     });
   }
-  els.modelViews?.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedModelView = button.dataset.view;
-      renderModel();
-    });
-  });
-  els.featureSearch?.addEventListener("input", renderFeatures);
   els.compoundSearch?.addEventListener("input", () => {
     state.compoundQuery = els.compoundSearch.value;
     renderCompounds();

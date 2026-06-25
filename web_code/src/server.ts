@@ -126,7 +126,7 @@ app.get("/api/site-data", async (_req: Request, res: Response<SiteData | ErrorRe
 });
 
 app.get("/api/contact", (_req: Request, res: Response<ContactResponse>) => {
-  const email = process.env.CONTACT_EMAIL || "contact@example.com";
+  const email = process.env.CONTACT_EMAIL || "cookiekat987@gmail.com";
   res.json({
     mode: "mailto",
     email,
@@ -138,6 +138,18 @@ app.all(["/api/tables", "/api/tables/*", "/api/analysis/overview"], (_req: Reque
   res.status(410).json({
     message: "Raw database browsing is disabled. This website exposes only curated read-only project summaries."
   });
+});
+
+app.get(["/proteins.html", "/chembl.html"], (_req: Request, res: Response) => {
+  res.redirect(301, "/mutation-analysis.html");
+});
+
+app.get("/contact.html", (_req: Request, res: Response) => {
+  res.redirect(301, "/about.html");
+});
+
+app.get("/workflow.html", (_req: Request, res: Response) => {
+  res.status(404).send("Workflow page has been removed.");
 });
 
 app.get("*", (_req: Request, res: Response) => {
