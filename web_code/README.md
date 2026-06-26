@@ -60,10 +60,32 @@ npm start
 - `GET /api/health`: reports app status.
 - `GET /api/site-data`: returns curated website-facing project summaries.
 - `GET /api/contact`: returns the public contact destination for the mailto flow.
+- `GET /api/mutation-analysis/genes`: returns COAD-only mutated gene frequencies from `coad_web`.
+- `GET /api/mutation-analysis/genes/:geneSymbol`: returns one gene plus curated protein/AlphaFold context.
+- `GET /api/mutation-analysis/genes/:geneSymbol/hotspots`: returns protein hotspot positions for the selected gene.
+- `GET /api/mutation-analysis/drugs`: returns NCI colorectal cancer drugs joined to local ChEMBL-derived formulas.
+- `GET /api/mutation-analysis/drugs/:chemblId`: returns one ChEMBL-derived compound detail record.
 
 Raw table browsing and arbitrary SQL endpoints are intentionally disabled. The public
 website must not expose database credentials, raw datasets, local private paths,
 or controls that edit, upload, delete, or modify project files.
+
+## COAD Web Database
+
+The Mutation Analysis page uses a compact self-contained PostgreSQL schema named
+`coad_web`. It is designed for future cloud deployment, so it stores only curated
+COAD website data instead of the full `bio_tcga` or `chembl` schemas.
+
+Refresh the schema from the local source database:
+
+```text
+npm run db:coad-web
+```
+
+Required database environment variables are `PGHOST`, `PGPORT`, `PGDATABASE`,
+`PGUSER`, and `PGPASSWORD`, or a single `DATABASE_URL`. The refresh script uses
+`bio_tcga` and `chembl` as build-time source schemas; runtime API routes read only
+from `coad_web`.
 
 ## Contact
 

@@ -5,6 +5,7 @@
   "description": "Read-only COAD Cancer Predictor research website served by Express.",
   "scripts": {
     "build": "tsc",
+    "db:coad-web": "node scripts/apply-coad-web-schema.mjs",
     "prestart": "npm run build",
     "start": "node dist/server.js",
     "dev": "npm run build && node dist/server.js",
@@ -12,11 +13,13 @@
   },
   "dependencies": {
     "echarts": "^6.1.0",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.0",
+    "@types/pg": "^8.20.0",
     "typescript": "^6.0.3"
   }
 }

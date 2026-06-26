@@ -420,7 +420,15 @@
         "rocAuc": 1.0,
         "balancedAccuracy": 0.9684,
         "confusionMatrix": [[8, 0], [6, 89]],
-        "plainEnglish": "A simple linear classification model. It performed strongly, but missed 6 tumor samples in the held-out split."
+        "plainEnglish": "A simple linear classification model. It performed strongly, but missed 6 tumor samples in the held-out split.",
+        "parameters": [
+          {"name": "Imputer", "value": "median strategy"},
+          {"name": "Scaler", "value": "StandardScaler"},
+          {"name": "class_weight", "value": "balanced"},
+          {"name": "max_iter", "value": "5000"},
+          {"name": "solver", "value": "liblinear"},
+          {"name": "random_state", "value": "42"}
+        ]
       },
       {
         "modelKey": "random_forest",
@@ -432,7 +440,14 @@
         "rocAuc": 1.0,
         "balancedAccuracy": 1.0,
         "confusionMatrix": [[8, 0], [0, 95]],
-        "plainEnglish": "A tree-based model that performed perfectly on this test split. This is promising, but it is still not clinical proof."
+        "plainEnglish": "A tree-based model that performed perfectly on this test split. This is promising, but it is still not clinical proof.",
+        "parameters": [
+          {"name": "Imputer", "value": "median strategy"},
+          {"name": "n_estimators", "value": "200"},
+          {"name": "class_weight", "value": "balanced"},
+          {"name": "random_state", "value": "42"},
+          {"name": "n_jobs", "value": "-1"}
+        ]
       },
       {
         "modelKey": "linear_svm",
@@ -444,7 +459,15 @@
         "rocAuc": 1.0,
         "balancedAccuracy": 0.9684,
         "confusionMatrix": [[8, 0], [6, 89]],
-        "plainEnglish": "A linear model that tries to draw a separating boundary between tumor and normal samples."
+        "plainEnglish": "A linear model that tries to draw a separating boundary between tumor and normal samples.",
+        "parameters": [
+          {"name": "Imputer", "value": "median strategy"},
+          {"name": "Scaler", "value": "StandardScaler"},
+          {"name": "class_weight", "value": "balanced"},
+          {"name": "max_iter", "value": "10000"},
+          {"name": "dual", "value": "True"},
+          {"name": "random_state", "value": "42"}
+        ]
       }
     ],
     "importantFeatures": [

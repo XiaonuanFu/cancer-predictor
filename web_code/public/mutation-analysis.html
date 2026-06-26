@@ -30,71 +30,105 @@
     </header>
 
     <main class="screen-page biology-screen">
-      <section class="section-band protein-section" id="proteins">
-        <div class="section-heading screen-heading">
+      <section class="section-band mutation-dashboard-screen" id="mutation-analysis">
+        <div class="section-heading screen-heading mutation-heading">
           <span class="section-kicker">Mutation Analysis</span>
-          <h1>Protein Structure And Mutation Site Viewer</h1>
-          <p>AlphaFold structures are predicted protein shapes, not always experimentally measured structures.</p>
+          <h1>COAD Mutation Genes, Protein Hotspots, And Treatment Drug Context</h1>
+          <p>
+            This page reads a compact local `coad_web` schema. Mutation summaries come from COAD-only TCGA records,
+            while chemical formulas and compound details come from curated ChEMBL records.
+          </p>
         </div>
-        <div class="protein-layout">
-          <aside class="protein-sidebar">
-            <h2>1. Select a gene</h2>
-            <div class="gene-tabs" id="gene-tabs" role="tablist" aria-label="Protein gene choices"></div>
-            <dl class="protein-facts" id="protein-facts"></dl>
-            <div class="plain-idea">
-              <strong>Plain English idea</strong>
-              <p>Protein structure: the 3D shape of a protein, which can affect how it works.</p>
+
+        <div class="mutation-chart-layout">
+          <article class="mutation-chart-panel">
+            <div class="panel-head">
+              <h2>Most frequently mutated COAD genes</h2>
+              <span>Database / coad_web</span>
             </div>
-            <div class="external-actions" id="protein-actions"></div>
-          </aside>
-          <article class="structure-card" id="structure-card"></article>
-          <article class="mutation-card" id="mutation-card"></article>
+            <div
+              class="mutation-gene-chart"
+              id="mutation-gene-chart"
+              role="img"
+              aria-label="Bar chart of the most frequently mutated COAD genes"
+            ></div>
+            <p>
+              Each bar shows how many COAD tumor samples contain at least one mutation in that gene.
+              One sample can appear in more than one gene bar.
+            </p>
+          </article>
+          <aside class="mutation-summary-panel" id="mutation-gene-summary" aria-live="polite"></aside>
+        </div>
+
+        <div class="mutation-detail-grid">
+          <article class="mutation-detail-panel" id="mutation-gene-detail" aria-live="polite"></article>
+          <article class="structure-card mutation-structure-panel" id="mutation-structure-card" aria-live="polite"></article>
+          <article class="mutation-card mutation-mapper-panel" id="mutation-mapper-card" aria-live="polite"></article>
         </div>
       </section>
 
-      <section class="section-band chembl-section" id="chembl">
+      <section class="section-band chembl-section mutation-drug-section" id="coad-drugs">
         <div class="section-heading screen-heading">
-          <span class="section-kicker">ChEMBL Context</span>
-          <h2>COAD Compound Formulas</h2>
-          <p>ChEMBL is a public database of bioactive molecules and drug-like compounds.</p>
+          <span class="section-kicker">NCI + ChEMBL Context</span>
+          <h2>COAD Treatment Drugs And Local Compound Details</h2>
+          <p>
+            The drug list is sourced from the National Cancer Institute colorectal cancer page.
+            Formula and structure fields are queried from the local `coad_web` schema.
+          </p>
         </div>
         <div class="table-tools">
           <label class="search-field">
-            <span>Search compound or ChEMBL ID</span>
-            <input id="compound-search" type="search" placeholder="Search compound or ChEMBL ID" />
+            <span>Search drug, compound, or ChEMBL ID</span>
+            <input id="mutation-drug-search" type="search" placeholder="Search drug, compound, or ChEMBL ID" />
           </label>
           <label>
             <span>Evidence label</span>
-            <select id="compound-filter"></select>
+            <select id="mutation-drug-filter"></select>
           </label>
           <label>
             <span>Sort by name</span>
-            <select id="compound-sort">
-              <option value="name">Sort by name</option>
+            <select id="mutation-drug-sort">
+              <option value="drug">Sort by drug</option>
+              <option value="compound">Sort by compound</option>
               <option value="formula">Sort by molecular formula</option>
             </select>
           </label>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="mutation-drug-table">
             <thead>
               <tr>
+                <th>Drug</th>
                 <th>Compound</th>
                 <th>ChEMBL ID</th>
                 <th>Molecular formula</th>
                 <th>Evidence</th>
-                <th>Source note</th>
+                <th>NCI source</th>
               </tr>
             </thead>
-            <tbody id="compound-table"></tbody>
+            <tbody id="mutation-drug-table"></tbody>
           </table>
         </div>
       </section>
     </main>
 
+    <div class="drawer-backdrop" id="drug-drawer-backdrop" hidden></div>
+    <aside
+      class="drug-drawer"
+      id="drug-drawer"
+      aria-labelledby="drug-drawer-title"
+      aria-modal="true"
+      role="dialog"
+      hidden
+    >
+      <button class="drawer-close" id="drug-drawer-close" type="button" aria-label="Close drug details">Close</button>
+      <div id="drug-drawer-content"></div>
+    </aside>
+
     <footer class="page-footer">
-      Protein links open public scientific resources. Compounds are research context, not treatment recommendations.
+      Protein and drug links open public scientific resources. This page is research context, not treatment advice.
     </footer>
+    <script src="/vendor/echarts.min.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

@@ -6,6 +6,14 @@ const state = {
   compoundQuery: "",
   compoundEvidence: "all",
   compoundSort: "name",
+  mutationGenes: [],
+  mutationGeneDetail: null,
+  mutationHotspots: [],
+  mutationDrugs: [],
+  mutationDrugQuery: "",
+  mutationDrugEvidence: "all",
+  mutationDrugSort: "drug",
+  drawerLastFocus: null,
   glossaryQuery: "",
   glossaryCategory: "all",
   sourceType: "all",
@@ -31,6 +39,19 @@ const els = {
   proteinActions: document.querySelector("#protein-actions"),
   structureCard: document.querySelector("#structure-card"),
   mutationCard: document.querySelector("#mutation-card"),
+  mutationGeneChart: document.querySelector("#mutation-gene-chart"),
+  mutationGeneSummary: document.querySelector("#mutation-gene-summary"),
+  mutationGeneDetail: document.querySelector("#mutation-gene-detail"),
+  mutationStructureCard: document.querySelector("#mutation-structure-card"),
+  mutationMapperCard: document.querySelector("#mutation-mapper-card"),
+  mutationDrugSearch: document.querySelector("#mutation-drug-search"),
+  mutationDrugFilter: document.querySelector("#mutation-drug-filter"),
+  mutationDrugSort: document.querySelector("#mutation-drug-sort"),
+  mutationDrugTable: document.querySelector("#mutation-drug-table"),
+  drugDrawer: document.querySelector("#drug-drawer"),
+  drugDrawerBackdrop: document.querySelector("#drug-drawer-backdrop"),
+  drugDrawerClose: document.querySelector("#drug-drawer-close"),
+  drugDrawerContent: document.querySelector("#drug-drawer-content"),
   compoundSearch: document.querySelector("#compound-search"),
   compoundFilter: document.querySelector("#compound-filter"),
   compoundSort: document.querySelector("#compound-sort"),
@@ -491,6 +512,25 @@ function modelFeatureNote(modelKey) {
   return "Positive or negative weights show which direction the feature pushed the prediction.";
 }
 
+function modelParameterList(model) {
+  const parameters = model.parameters || [];
+  if (!parameters.length) return "";
+  return `
+    <dl class="model-parameter-list" aria-label="Training parameters for ${escapeHtml(model.modelName)}">
+      ${parameters
+        .map(
+          (parameter) => `
+            <div>
+              <dt>${escapeHtml(parameter.name)}</dt>
+              <dd>${escapeHtml(parameter.value)}</dd>
+            </div>
+          `
+        )
+        .join("")}
+    </dl>
+  `;
+}
+
 function renderModelSamples(modelData) {
   if (!els.modelSampleGrid) return;
   const samples = modelData.samples;
@@ -541,6 +581,7 @@ function renderModelCard(model, importantFeatures) {
         <span>Baseline model</span>
         <h3>${escapeHtml(model.modelName)}</h3>
         <p>${escapeHtml(model.plainEnglish)}</p>
+        ${modelParameterList(model)}
       </div>
       <div class="model-metrics-list">
         ${modelMetrics(model)
@@ -709,6 +750,424 @@ function renderCompounds() {
       .join("") || `<tr><td colspan="5">No matching compounds.</td></tr>`;
 }
 
+function formatPercent(value) {
+  return `${Number(value || 0).toFixed(1).replace(/\.0$/, "")}%`;
+}
+
+function mutationPageActive() {
+  return Boolean(els.mutationGeneChart || els.mutationDrugTable);
+}
+
+function mutationExternalLink(url, label) {
+  if (!url) return `<span class="empty-inline">Not available</span>`;
+  return externalLink(url, label);
+}
+
+function renderMutationGeneChart() {
+  if (!els.mutationGeneChart) return;
+  if (!window.echarts) {
+    els.mutationGeneChart.innerHTML = `<p class="chart-fallback">Chart library unavailable. Mutation genes are still listed in the summary panel.</p>`;
+    return;
+  }
+
+  const genes = state.mutationGenes.slice(0, 12);
+  const existing = chartInstances.get("mutation-genes");
+  if (existing) {
+    existing.dispose();
+    chartInstances.delete("mutation-genes");
+  }
+
+  const chart = window.echarts.init(els.mutationGeneChart, null, { renderer: "canvas" });
+  chart.setOption({
+    color: [chartColor("--green", "#005b49")],
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params) => {
+        const item = genes[params[0].dataIndex];
+        return `<strong>${escapeHtml(item.geneSymbol)}</strong><br/>Mutated samples: ${formatNumber(item.mutatedSampleCount)}<br/>Frequency: ${formatPercent(item.mutatedSamplePercent)}<br/>Records: ${formatNumber(item.mutationRecords)}`;
+      }
+    },
+    grid: { left: 92, right: 28, top: 16, bottom: 42 },
+    xAxis: {
+      type: "value",
+      name: "Mutated samples",
+      nameLocation: "middle",
+      nameGap: 30,
+      axisLine: { lineStyle: { color: "#9eb7b2" } },
+      splitLine: { lineStyle: { color: "rgba(158, 183, 178, 0.28)" } }
+    },
+    yAxis: {
+      type: "category",
+      data: genes.map((item) => item.geneSymbol).reverse(),
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: "#9eb7b2" } }
+    },
+    series: [
+      {
+        type: "bar",
+        data: genes.map((item) => item.mutatedSampleCount).reverse(),
+        barMaxWidth: 22,
+        itemStyle: {
+          borderRadius: [0, 6, 6, 0],
+          color: (params) => {
+            const gene = genes.slice().reverse()[params.dataIndex];
+            return gene.geneSymbol === state.selectedGene ? chartColor("--coral", "#ec635c") : chartColor("--green", "#005b49");
+          }
+        },
+        label: {
+          show: true,
+          position: "right",
+          formatter: (params) => {
+            const item = genes.slice().reverse()[params.dataIndex];
+            return `${item.mutatedSampleCount} (${formatPercent(item.mutatedSamplePercent)})`;
+          }
+        }
+      }
+    ]
+  });
+  chart.on("click", (params) => {
+    const gene = genes.slice().reverse()[params.dataIndex];
+    if (gene) selectMutationGene(gene.geneSymbol);
+  });
+  chartInstances.set("mutation-genes", chart);
+}
+
+function renderMutationGeneSummary() {
+  if (!els.mutationGeneSummary) return;
+  const selected = state.mutationGenes.find((item) => item.geneSymbol === state.selectedGene) || state.mutationGenes[0];
+  if (!selected) {
+    els.mutationGeneSummary.innerHTML = `<p class="empty">No mutation genes loaded from coad_web yet.</p>`;
+    return;
+  }
+
+  els.mutationGeneSummary.innerHTML = `
+    <span class="section-kicker">Selected gene</span>
+    <h2>${escapeHtml(selected.geneSymbol)}</h2>
+    <dl class="summary-metrics">
+      <div><dt>Mutated samples</dt><dd>${formatNumber(selected.mutatedSampleCount)}</dd></div>
+      <div><dt>Sample frequency</dt><dd>${formatPercent(selected.mutatedSamplePercent)}</dd></div>
+      <div><dt>Mutation records</dt><dd>${formatNumber(selected.mutationRecords)}</dd></div>
+      <div><dt>Top mutation type</dt><dd>${escapeHtml(selected.topVariantClassification || "Not available")}</dd></div>
+    </dl>
+    <p>Mutation frequency means the percent of COAD tumor samples with at least one mutation in this gene.</p>
+  `;
+}
+
+function renderMutationGeneDetail() {
+  if (!els.mutationGeneDetail) return;
+  const detail = state.mutationGeneDetail;
+  if (!detail) {
+    els.mutationGeneDetail.innerHTML = `<p class="empty">Select a gene to load database details.</p>`;
+    return;
+  }
+
+  els.mutationGeneDetail.innerHTML = `
+    <div class="panel-head">
+      <h3>${escapeHtml(detail.geneSymbol)} database summary</h3>
+      <span>COAD mutation gene</span>
+    </div>
+    <dl class="protein-facts mutation-facts">
+      <div><dt>Gene symbol</dt><dd>${escapeHtml(detail.geneSymbol)}</dd></div>
+      <div><dt>Mutated samples</dt><dd>${formatNumber(detail.mutatedSampleCount)}</dd></div>
+      <div><dt>Sample frequency</dt><dd>${formatPercent(detail.mutatedSamplePercent)}</dd></div>
+      <div><dt>Mutation records</dt><dd>${formatNumber(detail.mutationRecords)}</dd></div>
+      <div><dt>Variant classification</dt><dd>${escapeHtml(detail.topVariantClassification || "Not available")}</dd></div>
+      <div><dt>Protein data</dt><dd>${detail.protein ? escapeHtml(detail.protein.proteinName) : "Protein structure data is not available yet for this selected gene."}</dd></div>
+    </dl>
+    <div class="plain-idea">
+      <strong>Plain English idea</strong>
+      <p>Variant classification means the type of mutation effect, such as missense or nonsense.</p>
+    </div>
+  `;
+}
+
+function renderMutationStructure() {
+  if (!els.mutationStructureCard) return;
+  const detail = state.mutationGeneDetail;
+  const protein = detail?.protein;
+  if (!detail) {
+    els.mutationStructureCard.innerHTML = `<p class="empty">Select a gene to load AlphaFold context.</p>`;
+    return;
+  }
+  if (!protein) {
+    els.mutationStructureCard.innerHTML = `
+      <div class="panel-head">
+        <h3>${escapeHtml(detail.geneSymbol)} protein structure</h3>
+        <span>AlphaFold</span>
+      </div>
+      <p class="empty">Protein structure data is not available yet for this selected gene.</p>
+    `;
+    return;
+  }
+
+  const hotspotLabel = state.mutationHotspots.slice(0, 2).map((item) => item.proteinChange).join(" / ") || detail.geneSymbol;
+  els.mutationStructureCard.innerHTML = `
+    <div class="panel-head">
+      <h3>${escapeHtml(detail.geneSymbol)} AlphaFold preview</h3>
+      <span>${escapeHtml(protein.uniprotId)}${protein.proteinLength ? ` / ${formatNumber(protein.proteinLength)} aa` : ""}</span>
+    </div>
+    <div class="protein-visual mutation-protein-preview" aria-hidden="true">
+      <span class="ribbon r1"></span>
+      <span class="ribbon r2"></span>
+      <span class="ribbon r3"></span>
+      <b>${escapeHtml(hotspotLabel)}</b>
+    </div>
+    <p>${escapeHtml(protein.structureNote)}</p>
+    <p>AlphaFold structures are predicted protein shapes. They are useful for research learning, but they are not always experimentally measured structures.</p>
+    <div class="external-actions">
+      ${mutationExternalLink(protein.alphafoldUrl, "Open AlphaFold DB")}
+      ${mutationExternalLink(`https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=${encodeURIComponent(detail.geneSymbol)}`, "Open cBioPortal Mutation Mapper")}
+    </div>
+  `;
+}
+
+function renderMutationMapper() {
+  if (!els.mutationMapperCard) return;
+  const detail = state.mutationGeneDetail;
+  if (!detail) {
+    els.mutationMapperCard.innerHTML = `<p class="empty">Select a gene to load mutation hotspots.</p>`;
+    return;
+  }
+
+  const hotspots = state.mutationHotspots;
+  if (!hotspots.length) {
+    els.mutationMapperCard.innerHTML = `
+      <div class="panel-head">
+        <h3>${escapeHtml(detail.geneSymbol)} mutation locations</h3>
+        <span>MutationMapper context</span>
+      </div>
+      <p class="empty">No recurrent protein hotspots are available in coad_web for this selected gene.</p>
+      <div class="external-actions">
+        ${mutationExternalLink(`https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=${encodeURIComponent(detail.geneSymbol)}`, "Open cBioPortal Mutation Mapper")}
+      </div>
+    `;
+    return;
+  }
+
+  const proteinLength = detail.protein?.proteinLength || Math.max(...hotspots.map((item) => item.aminoAcidPosition || 0), 200);
+  els.mutationMapperCard.innerHTML = `
+    <div class="panel-head">
+      <h3>${escapeHtml(detail.geneSymbol)} mutation locations</h3>
+      <span>MutationMapper-style view</span>
+    </div>
+    <div class="domain-track"><span>1</span><span>${Math.round(proteinLength / 3)}</span><span>${Math.round((proteinLength * 2) / 3)}</span><span>${formatNumber(proteinLength)}</span></div>
+    <div class="mutation-track" aria-label="Mutation locations for ${escapeHtml(detail.geneSymbol)}">
+      ${hotspots
+        .map((mutation) => {
+          const position = mutation.aminoAcidPosition || 0;
+          const left = Math.min(Math.max((position / proteinLength) * 92 + 4, 4), 96);
+          return `
+            <span style="left: ${left}%">
+              <i></i><b>${escapeHtml(mutation.proteinChange)}</b>
+            </span>
+          `;
+        })
+        .join("")}
+    </div>
+    <ul>
+      ${hotspots
+        .map(
+          (mutation) => `<li>${escapeHtml(mutation.proteinChange)} - ${formatNumber(mutation.sampleCount)} mutated samples - ${escapeHtml(mutation.variantClassification || mutation.mutationLabel)}</li>`
+        )
+        .join("")}
+    </ul>
+    <p>Mutation Mapper shows where mutations appear along a protein. This helps visitors see whether many samples share a similar mutation location.</p>
+    <div class="external-actions">
+      ${mutationExternalLink(hotspots[0].cbioportalMutationMapperUrl, "Open cBioPortal Mutation Mapper")}
+    </div>
+  `;
+}
+
+function renderMutationGenePanels() {
+  renderMutationGeneSummary();
+  renderMutationGeneDetail();
+  renderMutationStructure();
+  renderMutationMapper();
+  renderMutationGeneChart();
+}
+
+async function selectMutationGene(geneSymbol) {
+  if (!geneSymbol || geneSymbol === state.selectedGene && state.mutationGeneDetail) return;
+  state.selectedGene = geneSymbol;
+  if (els.mutationGeneDetail) els.mutationGeneDetail.innerHTML = `<p class="empty">Loading ${escapeHtml(geneSymbol)} from coad_web...</p>`;
+  if (els.mutationMapperCard) els.mutationMapperCard.innerHTML = `<p class="empty">Loading protein hotspots...</p>`;
+
+  try {
+    const [detail, hotspots] = await Promise.all([
+      fetchJson(`/api/mutation-analysis/genes/${encodeURIComponent(geneSymbol)}`),
+      fetchJson(`/api/mutation-analysis/genes/${encodeURIComponent(geneSymbol)}/hotspots`)
+    ]);
+    state.mutationGeneDetail = detail;
+    state.mutationHotspots = hotspots;
+    renderMutationGenePanels();
+  } catch (error) {
+    state.mutationGeneDetail = null;
+    state.mutationHotspots = [];
+    if (els.mutationGeneDetail) els.mutationGeneDetail.innerHTML = `<p class="empty">Unable to load ${escapeHtml(geneSymbol)}: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function filteredMutationDrugs() {
+  const query = state.mutationDrugQuery.toLowerCase();
+  return [...state.mutationDrugs]
+    .filter((item) => state.mutationDrugEvidence === "all" || item.evidenceLabel === state.mutationDrugEvidence)
+    .filter((item) => {
+      const haystack = `${item.drugName} ${item.compoundName || ""} ${item.chemblId || ""} ${item.molecularFormula || ""}`.toLowerCase();
+      return !query || haystack.includes(query);
+    })
+    .sort((a, b) => {
+      if (state.mutationDrugSort === "compound") return (a.compoundName || a.drugName).localeCompare(b.compoundName || b.drugName);
+      if (state.mutationDrugSort === "formula") return (a.molecularFormula || "").localeCompare(b.molecularFormula || "");
+      return a.drugName.localeCompare(b.drugName);
+    });
+}
+
+function renderMutationDrugs() {
+  if (!els.mutationDrugTable) return;
+  if (els.mutationDrugFilter && !els.mutationDrugFilter.dataset.ready) {
+    const labels = ["all", ...new Set(state.mutationDrugs.map((item) => item.evidenceLabel))];
+    els.mutationDrugFilter.innerHTML = labels
+      .map((label) => `<option value="${escapeHtml(label)}">${label === "all" ? "Evidence label" : escapeHtml(label)}</option>`)
+      .join("");
+    els.mutationDrugFilter.dataset.ready = "true";
+  }
+
+  const drugs = filteredMutationDrugs();
+  els.mutationDrugTable.innerHTML =
+    drugs
+      .map(
+        (item) => `
+          <tr>
+            <td>
+              <button class="drug-row-button" type="button" data-chembl-id="${escapeHtml(item.chemblId || "")}" data-drug-slug="${escapeHtml(item.drugSlug)}">
+                ${escapeHtml(item.drugName)}
+              </button>
+            </td>
+            <td>${escapeHtml(item.compoundName || "No local ChEMBL match yet")}</td>
+            <td>${item.chemblId ? externalLink(`https://www.ebi.ac.uk/chembl/compound_report_card/${item.chemblId}/`, item.chemblId) : `<span class="empty-inline">Not matched</span>`}</td>
+            <td>${item.molecularFormula ? `<code>${formulaHtml(item.molecularFormula)}</code>` : `<span class="empty-inline">Not available</span>`}</td>
+            <td><span class="tag">${escapeHtml(item.evidenceLabel)}</span></td>
+            <td>${externalLink(item.nciDrugUrl, "NCI")}</td>
+          </tr>
+        `
+      )
+      .join("") || `<tr><td colspan="6">No matching drugs.</td></tr>`;
+
+  els.mutationDrugTable.querySelectorAll(".drug-row-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const drug = state.mutationDrugs.find((item) => item.drugSlug === button.dataset.drugSlug && (item.chemblId || "") === (button.dataset.chemblId || ""));
+      openDrugDrawer(drug, button);
+    });
+  });
+}
+
+function drawerFocusable() {
+  if (!els.drugDrawer) return [];
+  return Array.from(els.drugDrawer.querySelectorAll("a, button, input, select, textarea, [tabindex]:not([tabindex='-1'])")).filter((node) => !node.disabled);
+}
+
+function closeDrugDrawer() {
+  if (!els.drugDrawer || !els.drugDrawerBackdrop) return;
+  els.drugDrawer.hidden = true;
+  els.drugDrawerBackdrop.hidden = true;
+  document.body.classList.remove("drawer-open");
+  if (state.drawerLastFocus) state.drawerLastFocus.focus();
+}
+
+function renderNoMatchDrawer(drug) {
+  if (!els.drugDrawerContent) return;
+  els.drugDrawerContent.innerHTML = `
+    <div class="drawer-head">
+      <span class="section-kicker">Drug detail</span>
+      <h2 id="drug-drawer-title">${escapeHtml(drug.drugName)}</h2>
+      <p>No local ChEMBL compound match is available yet for this NCI-listed drug.</p>
+    </div>
+    <dl class="drawer-facts">
+      <div><dt>NCI source</dt><dd>${externalLink(drug.nciDrugUrl, "Open NCI drug page")}</dd></div>
+      <div><dt>Evidence</dt><dd>${escapeHtml(drug.evidenceLabel)}</dd></div>
+      <div><dt>Context</dt><dd>${escapeHtml(drug.nciCancerType)}</dd></div>
+    </dl>
+  `;
+}
+
+function renderDrugDetailDrawer(detail) {
+  if (!els.drugDrawerContent) return;
+  els.drugDrawerContent.innerHTML = `
+    <div class="drawer-head">
+      <span class="section-kicker">Compound detail</span>
+      <h2 id="drug-drawer-title">${escapeHtml(detail.drugName)}</h2>
+      <p>${escapeHtml(detail.compoundName || "Local ChEMBL compound")} from the compact COAD web schema.</p>
+    </div>
+    ${detail.structureImageUrlOrSvg ? `<figure class="compound-structure"><img src="${escapeHtml(detail.structureImageUrlOrSvg)}" alt="Chemical structure for ${escapeHtml(detail.compoundName)}" /></figure>` : ""}
+    <dl class="drawer-facts">
+      <div><dt>Compound</dt><dd>${escapeHtml(detail.compoundName || "Not available")}</dd></div>
+      <div><dt>ChEMBL ID</dt><dd>${detail.chemblId ? externalLink(`https://www.ebi.ac.uk/chembl/compound_report_card/${detail.chemblId}/`, detail.chemblId) : "Not available"}</dd></div>
+      <div><dt>Molecular formula</dt><dd>${detail.molecularFormula ? `<code>${formulaHtml(detail.molecularFormula)}</code>` : "Not available"}</dd></div>
+      <div><dt>Molecule type</dt><dd>${escapeHtml(detail.moleculeType || "Not available")}</dd></div>
+      <div><dt>Max phase</dt><dd>${detail.maxPhase ?? "Not available"}</dd></div>
+      <div><dt>InChIKey</dt><dd>${escapeHtml(detail.standardInchiKey || "Not available")}</dd></div>
+      <div><dt>SMILES</dt><dd><code>${escapeHtml(detail.canonicalSmiles || "Not available")}</code></dd></div>
+      <div><dt>NCI source</dt><dd>${externalLink(detail.nciDrugUrl, "Open NCI drug page")}</dd></div>
+    </dl>
+    <section class="drawer-section">
+      <h3>Indications</h3>
+      ${
+        detail.indications?.length
+          ? `<ul>${detail.indications
+              .map((item) => `<li>${escapeHtml(item.indicationText || item.meshHeading || item.efoTerm || "ChEMBL indication record")}</li>`)
+              .join("")}</ul>`
+          : `<p class="empty">No local ChEMBL indication record is available yet.</p>`
+      }
+    </section>
+    <p class="drawer-note">Molecular formula shows which atoms are in a molecule. SMILES is a text format for describing chemical structure.</p>
+  `;
+}
+
+async function openDrugDrawer(drug, trigger) {
+  if (!drug || !els.drugDrawer || !els.drugDrawerBackdrop || !els.drugDrawerContent) return;
+  state.drawerLastFocus = trigger || document.activeElement;
+  els.drugDrawer.hidden = false;
+  els.drugDrawerBackdrop.hidden = false;
+  document.body.classList.add("drawer-open");
+  els.drugDrawerContent.innerHTML = `<p class="empty">Loading drug details from coad_web...</p>`;
+
+  if (!drug.chemblId) {
+    renderNoMatchDrawer(drug);
+    els.drugDrawerClose?.focus();
+    return;
+  }
+
+  try {
+    const detail = await fetchJson(`/api/mutation-analysis/drugs/${encodeURIComponent(drug.chemblId)}`);
+    renderDrugDetailDrawer(detail);
+  } catch (error) {
+    els.drugDrawerContent.innerHTML = `<p class="empty">Unable to load ${escapeHtml(drug.chemblId)}: ${escapeHtml(error.message)}</p>`;
+  }
+  els.drugDrawerClose?.focus();
+}
+
+async function loadMutationAnalysis() {
+  if (!mutationPageActive()) return;
+  try {
+    const [genes, drugs] = await Promise.all([
+      fetchJson("/api/mutation-analysis/genes"),
+      fetchJson("/api/mutation-analysis/drugs")
+    ]);
+    state.mutationGenes = genes;
+    state.mutationDrugs = drugs;
+    state.selectedGene = genes[0]?.geneSymbol || state.selectedGene;
+    renderMutationGeneChart();
+    renderMutationGeneSummary();
+    renderMutationDrugs();
+    if (state.selectedGene) await selectMutationGene(state.selectedGene);
+  } catch (error) {
+    const message = `Unable to load Mutation Analysis data from coad_web: ${escapeHtml(error.message)}`;
+    if (els.mutationGeneSummary) els.mutationGeneSummary.innerHTML = `<p class="empty">${message}</p>`;
+    if (els.mutationDrugTable) els.mutationDrugTable.innerHTML = `<tr><td colspan="6">${message}</td></tr>`;
+  }
+}
+
 function renderGlossary() {
   if (!els.glossaryList || !els.glossaryCategories) return;
   const counts = state.data.glossary.reduce((acc, term) => {
@@ -837,6 +1296,40 @@ function bindEvents() {
     state.compoundSort = els.compoundSort.value;
     renderCompounds();
   });
+  els.mutationDrugSearch?.addEventListener("input", () => {
+    state.mutationDrugQuery = els.mutationDrugSearch.value;
+    renderMutationDrugs();
+  });
+  els.mutationDrugFilter?.addEventListener("change", () => {
+    state.mutationDrugEvidence = els.mutationDrugFilter.value;
+    renderMutationDrugs();
+  });
+  els.mutationDrugSort?.addEventListener("change", () => {
+    state.mutationDrugSort = els.mutationDrugSort.value;
+    renderMutationDrugs();
+  });
+  els.drugDrawerClose?.addEventListener("click", closeDrugDrawer);
+  els.drugDrawerBackdrop?.addEventListener("click", closeDrugDrawer);
+  document.addEventListener("keydown", (event) => {
+    if (!els.drugDrawer || els.drugDrawer.hidden) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDrugDrawer();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = drawerFocusable();
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
   els.glossarySearch?.addEventListener("input", () => {
     state.glossaryQuery = els.glossarySearch.value;
     renderGlossary();
@@ -863,6 +1356,7 @@ async function init() {
     renderModel();
     renderProteins();
     renderCompounds();
+    await loadMutationAnalysis();
     renderGlossary();
     renderSources();
     await loadContact();
