@@ -7,8 +7,18 @@ const state = {
   compoundEvidence: "all",
   compoundSort: "name",
   mutationGenes: [],
-  mutationGeneDetail: null,
+  mutationTypes: [],
+  mutationDetails: [],
+  mutationGeneFilter: "all",
+  mutationTypeFilter: "all",
+  mutationPage: 1,
+  mutationPageSize: 50,
+  mutationTotalRows: 0,
+  mutationTotalPages: 1,
+  selectedMutationDetail: null,
   mutationHotspots: [],
+  mutationLocationMutations: [],
+  mutationMapperZoom: 1,
   mutationDrugs: [],
   mutationDrugQuery: "",
   mutationDrugEvidence: "all",
@@ -40,8 +50,15 @@ const els = {
   structureCard: document.querySelector("#structure-card"),
   mutationCard: document.querySelector("#mutation-card"),
   mutationGeneChart: document.querySelector("#mutation-gene-chart"),
-  mutationGeneSummary: document.querySelector("#mutation-gene-summary"),
-  mutationGeneDetail: document.querySelector("#mutation-gene-detail"),
+  mutationTypeChart: document.querySelector("#mutation-type-chart"),
+  mutationGeneFilter: document.querySelector("#mutation-gene-filter"),
+  mutationTypeFilter: document.querySelector("#mutation-type-filter"),
+  mutationDetailTable: document.querySelector("#mutation-detail-table"),
+  mutationTableCount: document.querySelector("#mutation-table-count"),
+  mutationPagePrev: document.querySelector("#mutation-page-prev"),
+  mutationPageNext: document.querySelector("#mutation-page-next"),
+  mutationPageSummary: document.querySelector("#mutation-page-summary"),
+  mutationPageSize: document.querySelector("#mutation-page-size"),
   mutationStructureCard: document.querySelector("#mutation-structure-card"),
   mutationMapperCard: document.querySelector("#mutation-mapper-card"),
   mutationDrugSearch: document.querySelector("#mutation-drug-search"),
@@ -66,6 +83,12 @@ const els = {
 };
 
 const chartInstances = new Map();
+let mutationStructureStage = null;
+let mutationStructureComponent = null;
+let mutationStructureResizeObserver = null;
+let mutationStructureLoadToken = 0;
+let mutationPlddtColorScheme = null;
+let mutationFullscreenHandler = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -771,6 +794,7 @@ function renderMutationGeneChart() {
   }
 
   const genes = state.mutationGenes.slice(0, 12);
+  const chartGenes = [...genes].reverse();
   const existing = chartInstances.get("mutation-genes");
   if (existing) {
     existing.dispose();
@@ -784,11 +808,11 @@ function renderMutationGeneChart() {
       trigger: "axis",
       axisPointer: { type: "shadow" },
       formatter: (params) => {
-        const item = genes[params[0].dataIndex];
+        const item = chartGenes[params[0].dataIndex];
         return `<strong>${escapeHtml(item.geneSymbol)}</strong><br/>Mutated samples: ${formatNumber(item.mutatedSampleCount)}<br/>Frequency: ${formatPercent(item.mutatedSamplePercent)}<br/>Records: ${formatNumber(item.mutationRecords)}`;
       }
     },
-    grid: { left: 92, right: 28, top: 16, bottom: 42 },
+    grid: { left: 92, right: 94, top: 16, bottom: 42 },
     xAxis: {
       type: "value",
       name: "Mutated samples",
@@ -799,27 +823,27 @@ function renderMutationGeneChart() {
     },
     yAxis: {
       type: "category",
-      data: genes.map((item) => item.geneSymbol).reverse(),
+      data: chartGenes.map((item) => item.geneSymbol),
       axisTick: { show: false },
       axisLine: { lineStyle: { color: "#9eb7b2" } }
     },
     series: [
       {
         type: "bar",
-        data: genes.map((item) => item.mutatedSampleCount).reverse(),
+        data: chartGenes.map((item) => item.mutatedSampleCount),
         barMaxWidth: 22,
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: (params) => {
-            const gene = genes.slice().reverse()[params.dataIndex];
-            return gene.geneSymbol === state.selectedGene ? chartColor("--coral", "#ec635c") : chartColor("--green", "#005b49");
+            const gene = chartGenes[params.dataIndex];
+            return gene.geneSymbol === state.mutationGeneFilter ? chartColor("--coral", "#ec635c") : chartColor("--green", "#005b49");
           }
         },
         label: {
           show: true,
           position: "right",
           formatter: (params) => {
-            const item = genes.slice().reverse()[params.dataIndex];
+            const item = chartGenes[params.dataIndex];
             return `${item.mutatedSampleCount} (${formatPercent(item.mutatedSamplePercent)})`;
           }
         }
@@ -827,117 +851,471 @@ function renderMutationGeneChart() {
     ]
   });
   chart.on("click", (params) => {
-    const gene = genes.slice().reverse()[params.dataIndex];
-    if (gene) selectMutationGene(gene.geneSymbol);
+    const gene = chartGenes[params.dataIndex];
+    if (!gene) return;
+    state.mutationGeneFilter = gene.geneSymbol;
+    if (els.mutationGeneFilter) els.mutationGeneFilter.value = gene.geneSymbol;
+    state.mutationPage = 1;
+    state.selectedMutationDetail = null;
+    state.mutationLocationMutations = [];
+    renderMutationStructure();
+    renderMutationMapper();
+    renderMutationGeneChart();
+    loadMutationTable();
   });
   chartInstances.set("mutation-genes", chart);
 }
 
-function renderMutationGeneSummary() {
-  if (!els.mutationGeneSummary) return;
-  const selected = state.mutationGenes.find((item) => item.geneSymbol === state.selectedGene) || state.mutationGenes[0];
-  if (!selected) {
-    els.mutationGeneSummary.innerHTML = `<p class="empty">No mutation genes loaded from coad_web yet.</p>`;
+function renderMutationTypeChart() {
+  if (!els.mutationTypeChart) return;
+  if (!window.echarts) {
+    els.mutationTypeChart.innerHTML = `<p class="chart-fallback">Chart library unavailable.</p>`;
     return;
   }
 
-  els.mutationGeneSummary.innerHTML = `
-    <span class="section-kicker">Selected gene</span>
-    <h2>${escapeHtml(selected.geneSymbol)}</h2>
-    <dl class="summary-metrics">
-      <div><dt>Mutated samples</dt><dd>${formatNumber(selected.mutatedSampleCount)}</dd></div>
-      <div><dt>Sample frequency</dt><dd>${formatPercent(selected.mutatedSamplePercent)}</dd></div>
-      <div><dt>Mutation records</dt><dd>${formatNumber(selected.mutationRecords)}</dd></div>
-      <div><dt>Top mutation type</dt><dd>${escapeHtml(selected.topVariantClassification || "Not available")}</dd></div>
-    </dl>
-    <p>Mutation frequency means the percent of COAD tumor samples with at least one mutation in this gene.</p>
-  `;
+  const mutationTypes = state.mutationTypes.slice(0, 12);
+  const chartTypes = [...mutationTypes].reverse();
+  const existing = chartInstances.get("mutation-types");
+  if (existing) {
+    existing.dispose();
+    chartInstances.delete("mutation-types");
+  }
+
+  const chart = window.echarts.init(els.mutationTypeChart, null, { renderer: "canvas" });
+  chart.setOption({
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params) => {
+        const item = chartTypes[params[0].dataIndex];
+        return `<strong>${escapeHtml(item.variantClassification)}</strong><br/>Mutation records: ${formatNumber(item.mutationRecords)}<br/>Mutated samples: ${formatNumber(item.mutatedSampleCount)}<br/>Affected genes: ${formatNumber(item.affectedGeneCount)}`;
+      }
+    },
+    grid: { left: 138, right: 32, top: 16, bottom: 42 },
+    xAxis: {
+      type: "value",
+      name: "Mutation records",
+      nameLocation: "middle",
+      nameGap: 30,
+      axisLine: { lineStyle: { color: "#9eb7b2" } },
+      splitLine: { lineStyle: { color: "rgba(158, 183, 178, 0.28)" } }
+    },
+    yAxis: {
+      type: "category",
+      data: chartTypes.map((item) => item.variantClassification),
+      axisTick: { show: false },
+      axisLabel: { width: 126, overflow: "truncate" },
+      axisLine: { lineStyle: { color: "#9eb7b2" } }
+    },
+    series: [
+      {
+        type: "bar",
+        data: chartTypes.map((item) => item.mutationRecords),
+        barMaxWidth: 22,
+        itemStyle: {
+          borderRadius: [0, 6, 6, 0],
+          color: (params) => {
+            const item = chartTypes[params.dataIndex];
+            return item.variantClassification === state.mutationTypeFilter
+              ? chartColor("--coral", "#ec635c")
+              : chartColor("--blue", "#2b6fb3");
+          }
+        },
+        label: {
+          show: true,
+          position: "right",
+          formatter: (params) => formatNumber(chartTypes[params.dataIndex].mutationRecords)
+        }
+      }
+    ]
+  });
+  chart.on("click", (params) => {
+    const mutationType = chartTypes[params.dataIndex];
+    if (!mutationType) return;
+    state.mutationTypeFilter = mutationType.variantClassification;
+    if (els.mutationTypeFilter) els.mutationTypeFilter.value = mutationType.variantClassification;
+    state.mutationPage = 1;
+    state.selectedMutationDetail = null;
+    state.mutationLocationMutations = [];
+    renderMutationStructure();
+    renderMutationMapper();
+    renderMutationTypeChart();
+    loadMutationTable();
+  });
+  chartInstances.set("mutation-types", chart);
 }
 
-function renderMutationGeneDetail() {
-  if (!els.mutationGeneDetail) return;
-  const detail = state.mutationGeneDetail;
-  if (!detail) {
-    els.mutationGeneDetail.innerHTML = `<p class="empty">Select a gene to load database details.</p>`;
+function disposeMutationStructureViewer() {
+  mutationStructureLoadToken += 1;
+  mutationStructureResizeObserver?.disconnect();
+  mutationStructureResizeObserver = null;
+  mutationStructureComponent = null;
+  if (mutationFullscreenHandler) {
+    document.removeEventListener("fullscreenchange", mutationFullscreenHandler);
+    mutationFullscreenHandler = null;
+  }
+  if (mutationStructureStage) {
+    mutationStructureStage.dispose();
+    mutationStructureStage = null;
+  }
+}
+
+function plddtColorScheme() {
+  if (mutationPlddtColorScheme || !window.NGL) return mutationPlddtColorScheme;
+  mutationPlddtColorScheme = window.NGL.ColormakerRegistry.addScheme(function () {
+    this.atomColor = (atom) => {
+      const confidence = Number(atom.bfactor || 0);
+      if (confidence > 90) return 0x0053d6;
+      if (confidence > 70) return 0x65cbf3;
+      if (confidence > 50) return 0xffdb13;
+      return 0xff7d45;
+    };
+  }, "AlphaFold pLDDT confidence");
+  return mutationPlddtColorScheme;
+}
+
+async function loadMutationStructureViewer(detail) {
+  const viewer = document.querySelector("#alphafold-structure-viewer");
+  const status = document.querySelector("#alphafold-viewer-status");
+  const resetButton = document.querySelector("#alphafold-reset-view");
+  const spinToggle = document.querySelector("#alphafold-spin");
+  const fullscreenButton = document.querySelector("#alphafold-fullscreen");
+  const viewerShell = document.querySelector(".alphafold-viewer-shell");
+  if (!viewer || !status || !detail?.protein) return;
+
+  if (!window.NGL) {
+    status.textContent = "The 3D viewer library could not be loaded.";
+    status.dataset.state = "error";
+    viewer.setAttribute("aria-busy", "false");
     return;
   }
 
-  els.mutationGeneDetail.innerHTML = `
-    <div class="panel-head">
-      <h3>${escapeHtml(detail.geneSymbol)} database summary</h3>
-      <span>COAD mutation gene</span>
-    </div>
-    <dl class="protein-facts mutation-facts">
-      <div><dt>Gene symbol</dt><dd>${escapeHtml(detail.geneSymbol)}</dd></div>
-      <div><dt>Mutated samples</dt><dd>${formatNumber(detail.mutatedSampleCount)}</dd></div>
-      <div><dt>Sample frequency</dt><dd>${formatPercent(detail.mutatedSamplePercent)}</dd></div>
-      <div><dt>Mutation records</dt><dd>${formatNumber(detail.mutationRecords)}</dd></div>
-      <div><dt>Variant classification</dt><dd>${escapeHtml(detail.topVariantClassification || "Not available")}</dd></div>
-      <div><dt>Protein data</dt><dd>${detail.protein ? escapeHtml(detail.protein.proteinName) : "Protein structure data is not available yet for this selected gene."}</dd></div>
-    </dl>
-    <div class="plain-idea">
-      <strong>Plain English idea</strong>
-      <p>Variant classification means the type of mutation effect, such as missense or nonsense.</p>
-    </div>
-  `;
+  const loadToken = ++mutationStructureLoadToken;
+  const protein = detail.protein;
+  const stage = new window.NGL.Stage(viewer, {
+    backgroundColor: "#f7faf9",
+    quality: protein.proteinLength && protein.proteinLength > 1200 ? "medium" : "high",
+    tooltip: true
+  });
+  mutationStructureStage = stage;
+
+  resetButton?.addEventListener("click", () => {
+    mutationStructureComponent?.autoView(450);
+  });
+  spinToggle?.addEventListener("change", () => {
+    stage.setSpin(Boolean(spinToggle.checked));
+  });
+  fullscreenButton?.addEventListener("click", async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else if (viewerShell?.requestFullscreen) {
+        await viewerShell.requestFullscreen();
+      }
+      window.setTimeout(() => stage.handleResize(), 120);
+    } catch (_error) {
+      viewerShell?.classList.toggle("fullscreen-fallback");
+      document.body.classList.toggle("structure-fullscreen-open", viewerShell?.classList.contains("fullscreen-fallback"));
+      window.setTimeout(() => stage.handleResize(), 120);
+    }
+  });
+  mutationFullscreenHandler = () => {
+    if (fullscreenButton) fullscreenButton.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+    window.setTimeout(() => stage.handleResize(), 120);
+  };
+  document.addEventListener("fullscreenchange", mutationFullscreenHandler);
+
+  mutationStructureResizeObserver = new ResizeObserver(() => {
+    stage.handleResize();
+  });
+  mutationStructureResizeObserver.observe(viewer);
+
+  try {
+    const structureParams = new URLSearchParams();
+    if (detail.aminoAcidPosition) structureParams.set("position", String(detail.aminoAcidPosition));
+    const structureUrl = `/api/mutation-analysis/proteins/${encodeURIComponent(protein.uniprotId)}/structure${structureParams.toString() ? `?${structureParams.toString()}` : ""}`;
+    const structureResponse = await fetch(structureUrl);
+    if (!structureResponse.ok) {
+      const payload = await structureResponse.json().catch(() => null);
+      throw new Error(payload?.message || "A structure fragment is not available for this protein position.");
+    }
+    const structureFormat = structureResponse.headers.get("X-Structure-Format") || "pdb";
+    const structureEntry = structureResponse.headers.get("X-Structure-Entry") || protein.uniprotId;
+    const fragmentStart = Number(structureResponse.headers.get("X-Fragment-Start") || 0);
+    const fragmentEnd = Number(structureResponse.headers.get("X-Fragment-End") || 0);
+    const selectedResidueLocal = Number(structureResponse.headers.get("X-Selected-Residue-Local") || detail.aminoAcidPosition || 0);
+    const structureBlob = await structureResponse.blob();
+    const component = await stage.loadFile(structureBlob, { ext: structureFormat });
+    if (loadToken !== mutationStructureLoadToken) {
+      stage.dispose();
+      return;
+    }
+
+    mutationStructureComponent = component;
+    component.addRepresentation("cartoon", {
+      color: plddtColorScheme(),
+      quality: protein.proteinLength && protein.proteinLength > 1200 ? "medium" : "high",
+      smoothSheet: true
+    });
+
+    const hotspotSelection = [state.selectedMutationDetail, ...state.mutationHotspots]
+      .map((item) => {
+        const position = Number(item?.aminoAcidPosition || 0);
+        if (fragmentStart && fragmentEnd) {
+          return position >= fragmentStart && position <= fragmentEnd ? position - fragmentStart + 1 : 0;
+        }
+        return position;
+      })
+      .filter((position) => position > 0)
+      .filter((position, index, positions) => positions.indexOf(position) === index)
+      .slice(0, 5)
+      .join(" or ");
+    const selectedPosition = selectedResidueLocal > 0 ? selectedResidueLocal : 0;
+    if (hotspotSelection) {
+      component.addRepresentation("ball+stick", {
+        sele: hotspotSelection,
+        color: "#ec635c",
+        scale: 1.25
+      });
+    }
+
+    component.autoView(650);
+    if (selectedPosition) component.autoView(String(selectedPosition), 450);
+    stage.handleResize();
+    viewer.dataset.rendered = "true";
+    viewer.setAttribute("aria-busy", "false");
+    status.textContent = fragmentStart && fragmentEnd
+      ? `${detail.geneSymbol} fragment ${formatNumber(fragmentStart)}-${formatNumber(fragmentEnd)} loaded (${structureEntry})`
+      : `${detail.geneSymbol} AlphaFold structure loaded`;
+    status.dataset.state = "ready";
+  } catch (error) {
+    if (loadToken !== mutationStructureLoadToken) return;
+    stage.dispose();
+    mutationStructureStage = null;
+    mutationStructureComponent = null;
+    viewer.setAttribute("aria-busy", "false");
+    status.textContent = error instanceof Error ? `Unable to load 3D structure: ${error.message}` : "Unable to load the 3D structure.";
+    status.dataset.state = "error";
+  }
 }
 
 function renderMutationStructure() {
   if (!els.mutationStructureCard) return;
-  const detail = state.mutationGeneDetail;
+  disposeMutationStructureViewer();
+  const detail = state.selectedMutationDetail;
   const protein = detail?.protein;
   if (!detail) {
-    els.mutationStructureCard.innerHTML = `<p class="empty">Select a gene to load AlphaFold context.</p>`;
+    els.mutationStructureCard.innerHTML = `
+      <div class="panel-head">
+        <h2>Protein Structure</h2>
+        <span>Selection required</span>
+      </div>
+      <p class="empty">Select a mutation row to load its corresponding protein structure.</p>
+    `;
     return;
   }
   if (!protein) {
     els.mutationStructureCard.innerHTML = `
       <div class="panel-head">
         <h3>${escapeHtml(detail.geneSymbol)} protein structure</h3>
-        <span>AlphaFold</span>
+        <span>${escapeHtml(detail.proteinChange)}</span>
       </div>
-      <p class="empty">Protein structure data is not available yet for this selected gene.</p>
+      <p class="empty">A curated AlphaFold target is not available for this gene in coad_web.</p>
     `;
     return;
   }
 
-  const hotspotLabel = state.mutationHotspots.slice(0, 2).map((item) => item.proteinChange).join(" / ") || detail.geneSymbol;
   els.mutationStructureCard.innerHTML = `
     <div class="panel-head">
-      <h3>${escapeHtml(detail.geneSymbol)} AlphaFold preview</h3>
+      <h3>${escapeHtml(detail.geneSymbol)} protein fragment 3D structure</h3>
       <span>${escapeHtml(protein.uniprotId)}${protein.proteinLength ? ` / ${formatNumber(protein.proteinLength)} aa` : ""}</span>
     </div>
-    <div class="protein-visual mutation-protein-preview" aria-hidden="true">
-      <span class="ribbon r1"></span>
-      <span class="ribbon r2"></span>
-      <span class="ribbon r3"></span>
-      <b>${escapeHtml(hotspotLabel)}</b>
+    <p class="selected-mutation-label"><strong>${escapeHtml(detail.proteinChange)}</strong> / ${escapeHtml(detail.variantClassification)}</p>
+    <div class="alphafold-viewer-shell">
+      <div
+        class="alphafold-structure-viewer"
+        id="alphafold-structure-viewer"
+        role="img"
+        aria-label="Interactive AlphaFold 3D structure for ${escapeHtml(detail.geneSymbol)}"
+        aria-busy="true"
+      ></div>
+      <div class="alphafold-viewer-toolbar">
+        <button id="alphafold-reset-view" type="button" title="Reset the 3D structure orientation">Reset view</button>
+        <button id="alphafold-fullscreen" type="button" title="Show the protein structure in full screen">Full screen</button>
+        <label class="viewer-spin-control">
+          <input id="alphafold-spin" type="checkbox" />
+          <span>Spin</span>
+        </label>
+      </div>
+      <div class="alphafold-viewer-status" id="alphafold-viewer-status" role="status" data-state="loading">
+        Loading ${escapeHtml(detail.geneSymbol)} structure fragment...
+      </div>
+    </div>
+    <div class="plddt-legend" aria-label="AlphaFold pLDDT confidence legend">
+      <span><i class="plddt-very-high"></i>Very high (&gt;90)</span>
+      <span><i class="plddt-confident"></i>Confident (70-90)</span>
+      <span><i class="plddt-low"></i>Low (50-70)</span>
+      <span><i class="plddt-very-low"></i>Very low (&lt;50)</span>
+      <span><i class="plddt-hotspot"></i>COAD hotspot</span>
     </div>
     <p>${escapeHtml(protein.structureNote)}</p>
-    <p>AlphaFold structures are predicted protein shapes. They are useful for research learning, but they are not always experimentally measured structures.</p>
+    <p>Colors show AlphaFold pLDDT confidence (how certain AlphaFold is about each amino acid position). For large proteins, the viewer loads the overlapping fragment around the selected mutation.</p>
     <div class="external-actions">
       ${mutationExternalLink(protein.alphafoldUrl, "Open AlphaFold DB")}
       ${mutationExternalLink(`https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=${encodeURIComponent(detail.geneSymbol)}`, "Open cBioPortal Mutation Mapper")}
+    </div>
+  `;
+
+  requestAnimationFrame(() => {
+    loadMutationStructureViewer(detail);
+  });
+}
+
+function buildCbioportalLollipopData(detail, mutations, proteinLength) {
+  const sortedForLabels = [...mutations].sort((a, b) => (b.sampleCount || 0) - (a.sampleCount || 0));
+  const labelSet = new Set(
+    sortedForLabels.slice(0, 24).map((mutation) => `${mutation.aminoAcidPosition}:${mutation.proteinChange}`)
+  );
+  const lollipops = mutations
+    .filter((mutation) => Number(mutation.aminoAcidPosition || 0) > 0)
+    .map((mutation) => ({
+      codon: Number(mutation.aminoAcidPosition),
+      count: Number(mutation.sampleCount || mutation.mutationRecords || 1),
+      color: mutation.aminoAcidPosition === detail.aminoAcidPosition && mutation.proteinChange === detail.proteinChange ? "#ec635c" : "#2b6fb3",
+      label: {
+        text: mutation.proteinChange,
+        show: labelSet.has(`${mutation.aminoAcidPosition}:${mutation.proteinChange}`)
+          || (mutation.aminoAcidPosition === detail.aminoAcidPosition && mutation.proteinChange === detail.proteinChange),
+        fontFamily: "Times New Roman"
+      },
+      proteinChange: mutation.proteinChange,
+      mutationType: mutation.variantClassification || mutation.mutationLabel || "Mutation"
+    }));
+
+  const midpoint = Math.max(1, Math.round(proteinLength / 2));
+  return {
+    hugoGeneSymbol: detail.geneSymbol,
+    geneWidth: proteinLength,
+    xMax: proteinLength,
+    yMax: Math.max(...lollipops.map((item) => item.count), 1),
+    lollipops,
+    zoom: state.mutationMapperZoom,
+    domains: [
+      { startCodon: 1, endCodon: midpoint, color: "#d8e6ed", label: "Protein" },
+      { startCodon: midpoint, endCodon: proteinLength, color: "#c4ddd7", label: "Protein" }
+    ],
+    sourceComponent: "react-mutation-mapper/LollipopPlot"
+  };
+}
+
+function renderCbioportalLollipopPlot(plotData) {
+  const width = Math.max(1000, Math.min(22000, Math.round(plotData.xMax * 0.16 * plotData.zoom)));
+  const height = 260;
+  const axisY = 198;
+  const leftPad = 54;
+  const rightPad = 34;
+  const topPad = 36;
+  const usableWidth = width - leftPad - rightPad;
+  const yMax = Math.max(plotData.yMax, 1);
+
+  const xForCodon = (codon) => leftPad + Math.min(Math.max(codon / plotData.xMax, 0), 1) * usableWidth;
+  const yForCount = (count) => axisY - Math.max((count / yMax) * 132, 16);
+  const ticks = [1, Math.round(plotData.xMax / 3), Math.round((plotData.xMax * 2) / 3), plotData.xMax];
+  const labelSlots = [];
+
+  const labelFor = (lollipop) => {
+    const x = xForCodon(lollipop.codon);
+    let slot = labelSlots.findIndex((lastX) => Math.abs(x - lastX) > 92);
+    if (slot === -1) slot = labelSlots.length;
+    labelSlots[slot] = x;
+    return {
+      x,
+      y: Math.max(topPad, yForCount(lollipop.count) - 16 - slot * 22)
+    };
+  };
+
+  return `
+    <div class="cbioportal-mutation-mapper" data-component-source="${escapeHtml(plotData.sourceComponent)}">
+      <svg viewBox="0 0 ${width} ${height}" style="width: ${width}px" role="img" aria-label="cBioPortal LollipopPlot for ${escapeHtml(plotData.hugoGeneSymbol)}">
+        <g class="cbio-axis">
+          <line x1="${leftPad}" y1="${axisY}" x2="${width - rightPad}" y2="${axisY}"></line>
+          ${ticks
+            .map((tick) => {
+              const x = xForCodon(tick);
+              return `<g><line x1="${x}" y1="${axisY}" x2="${x}" y2="${axisY + 6}"></line><text x="${x}" y="${axisY + 26}">${formatNumber(tick)}</text></g>`;
+            })
+            .join("")}
+        </g>
+        <g class="cbio-domains">
+          ${plotData.domains
+            .map((domain) => {
+              const start = xForCodon(domain.startCodon);
+              const end = xForCodon(domain.endCodon);
+              return `<rect x="${start}" y="${axisY - 10}" width="${Math.max(end - start, 1)}" height="20" fill="${escapeHtml(domain.color)}"></rect>`;
+            })
+            .join("")}
+        </g>
+        <g class="cbio-lollipops">
+          ${plotData.lollipops
+            .sort((a, b) => a.codon - b.codon)
+            .map((lollipop) => {
+              const x = xForCodon(lollipop.codon);
+              const y = yForCount(lollipop.count);
+              const radius = Math.min(18, Math.max(7, 5 + Math.sqrt(lollipop.count)));
+              const label = lollipop.label.show ? labelFor(lollipop) : null;
+              return `
+                <g class="cbio-lollipop" tabindex="0">
+                  <title>${escapeHtml(lollipop.proteinChange)} at ${formatNumber(lollipop.codon)}: ${formatNumber(lollipop.count)} mutated samples</title>
+                  <line x1="${x}" y1="${axisY - 10}" x2="${x}" y2="${y}"></line>
+                  <circle cx="${x}" cy="${y}" r="${radius}" fill="${escapeHtml(lollipop.color)}"></circle>
+                  ${label ? `<text x="${label.x}" y="${label.y}">${escapeHtml(lollipop.label.text)}</text>` : ""}
+                </g>
+              `;
+            })
+            .join("")}
+        </g>
+      </svg>
     </div>
   `;
 }
 
 function renderMutationMapper() {
   if (!els.mutationMapperCard) return;
-  const detail = state.mutationGeneDetail;
+  const detail = state.selectedMutationDetail;
   if (!detail) {
-    els.mutationMapperCard.innerHTML = `<p class="empty">Select a gene to load mutation hotspots.</p>`;
+    els.mutationMapperCard.innerHTML = `
+      <div class="panel-head">
+        <h2>Mutation Locations</h2>
+        <span>Selection required</span>
+      </div>
+      <p class="empty">Select a mutation row to display protein positions.</p>
+    `;
     return;
   }
 
-  const hotspots = state.mutationHotspots;
-  if (!hotspots.length) {
+  const mutations = [...state.mutationLocationMutations];
+  if (
+    detail.aminoAcidPosition
+    && !mutations.some((item) => item.aminoAcidPosition === detail.aminoAcidPosition && item.proteinChange === detail.proteinChange)
+  ) {
+    mutations.unshift({
+      mutationDetailId: detail.mutationDetailId,
+      proteinChange: detail.proteinChange,
+      aminoAcidPosition: detail.aminoAcidPosition,
+      sampleCount: detail.mutatedSampleCount,
+      mutationRecords: detail.mutationRecords,
+      variantClassification: detail.variantClassification,
+      mutationLabel: detail.variantClassification,
+      cbioportalMutationMapperUrl: `https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=${encodeURIComponent(detail.geneSymbol)}`
+    });
+  }
+  if (!mutations.length) {
     els.mutationMapperCard.innerHTML = `
       <div class="panel-head">
         <h3>${escapeHtml(detail.geneSymbol)} mutation locations</h3>
         <span>MutationMapper context</span>
       </div>
-      <p class="empty">No recurrent protein hotspots are available in coad_web for this selected gene.</p>
+      <p class="empty">No protein mutation positions are available in coad_web for this selected gene.</p>
       <div class="external-actions">
         ${mutationExternalLink(`https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=${encodeURIComponent(detail.geneSymbol)}`, "Open cBioPortal Mutation Mapper")}
       </div>
@@ -945,67 +1323,196 @@ function renderMutationMapper() {
     return;
   }
 
-  const proteinLength = detail.protein?.proteinLength || Math.max(...hotspots.map((item) => item.aminoAcidPosition || 0), 200);
+  const proteinLength = detail.protein?.proteinLength || Math.max(...mutations.map((item) => item.aminoAcidPosition || 0), 200);
+  const plotData = buildCbioportalLollipopData(detail, mutations, proteinLength);
+  const listedMutations = [...mutations]
+    .sort((a, b) => (b.sampleCount || 0) - (a.sampleCount || 0))
+    .slice(0, 18);
+
   els.mutationMapperCard.innerHTML = `
     <div class="panel-head">
       <h3>${escapeHtml(detail.geneSymbol)} mutation locations</h3>
-      <span>MutationMapper-style view</span>
+      <span>${formatNumber(plotData.lollipops.length)} positioned / ${formatNumber(mutations.length)} records</span>
     </div>
-    <div class="domain-track"><span>1</span><span>${Math.round(proteinLength / 3)}</span><span>${Math.round((proteinLength * 2) / 3)}</span><span>${formatNumber(proteinLength)}</span></div>
-    <div class="mutation-track" aria-label="Mutation locations for ${escapeHtml(detail.geneSymbol)}">
-      ${hotspots
-        .map((mutation) => {
-          const position = mutation.aminoAcidPosition || 0;
-          const left = Math.min(Math.max((position / proteinLength) * 92 + 4, 4), 96);
-          return `
-            <span style="left: ${left}%">
-              <i></i><b>${escapeHtml(mutation.proteinChange)}</b>
-            </span>
-          `;
-        })
-        .join("")}
+    <div class="mutation-mapper-tools">
+      <label>
+        <span>Zoom</span>
+        <input id="mutation-mapper-zoom" type="range" min="1" max="4" step="0.5" value="${state.mutationMapperZoom}" />
+      </label>
+      <span>Drag the horizontal scrollbar to inspect long proteins.</span>
     </div>
+    ${renderCbioportalLollipopPlot(plotData)}
     <ul>
-      ${hotspots
+      ${listedMutations
         .map(
-          (mutation) => `<li>${escapeHtml(mutation.proteinChange)} - ${formatNumber(mutation.sampleCount)} mutated samples - ${escapeHtml(mutation.variantClassification || mutation.mutationLabel)}</li>`
+          (mutation) => `<li>${escapeHtml(mutation.proteinChange)} - position ${mutation.aminoAcidPosition ? formatNumber(mutation.aminoAcidPosition) : "not available"} - ${formatNumber(mutation.sampleCount)} mutated samples - ${escapeHtml(mutation.variantClassification || mutation.mutationLabel)}</li>`
         )
         .join("")}
     </ul>
-    <p>Mutation Mapper shows where mutations appear along a protein. This helps visitors see whether many samples share a similar mutation location.</p>
+    <p>This local plot uses the open-source cBioPortal Mutation Mapper LollipopPlot input shape. It renders every protein-level mutation point for the selected gene; labels are limited to the selected and highest-count positions so the plot remains readable.</p>
     <div class="external-actions">
-      ${mutationExternalLink(hotspots[0].cbioportalMutationMapperUrl, "Open cBioPortal Mutation Mapper")}
+      ${mutationExternalLink(mutations[0].cbioportalMutationMapperUrl, "Open cBioPortal Mutation Mapper")}
     </div>
   `;
+
+  document.querySelector("#mutation-mapper-zoom")?.addEventListener("input", (event) => {
+    state.mutationMapperZoom = Number(event.target.value) || 1;
+    renderMutationMapper();
+  });
 }
 
-function renderMutationGenePanels() {
-  renderMutationGeneSummary();
-  renderMutationGeneDetail();
-  renderMutationStructure();
-  renderMutationMapper();
-  renderMutationGeneChart();
+function populateMutationFilters() {
+  if (els.mutationGeneFilter) {
+    els.mutationGeneFilter.innerHTML = [
+      `<option value="all">All genes</option>`,
+      ...state.mutationGenes.map((item) => `<option value="${escapeHtml(item.geneSymbol)}">${escapeHtml(item.geneSymbol)}</option>`)
+    ].join("");
+    els.mutationGeneFilter.value = state.mutationGeneFilter;
+  }
+
+  if (els.mutationTypeFilter) {
+    els.mutationTypeFilter.innerHTML = [
+      `<option value="all">All mutation types</option>`,
+      ...state.mutationTypes.map((item) => `<option value="${escapeHtml(item.variantClassification)}">${escapeHtml(item.variantClassification)}</option>`)
+    ].join("");
+    els.mutationTypeFilter.value = state.mutationTypeFilter;
+  }
 }
 
-async function selectMutationGene(geneSymbol) {
-  if (!geneSymbol || geneSymbol === state.selectedGene && state.mutationGeneDetail) return;
-  state.selectedGene = geneSymbol;
-  if (els.mutationGeneDetail) els.mutationGeneDetail.innerHTML = `<p class="empty">Loading ${escapeHtml(geneSymbol)} from coad_web...</p>`;
-  if (els.mutationMapperCard) els.mutationMapperCard.innerHTML = `<p class="empty">Loading protein hotspots...</p>`;
+function renderMutationTable() {
+  if (!els.mutationDetailTable) return;
+  const totalRows = state.mutationTotalRows || 0;
+  const startRow = totalRows ? (state.mutationPage - 1) * state.mutationPageSize + 1 : 0;
+  const endRow = totalRows ? Math.min(startRow + state.mutationDetails.length - 1, totalRows) : 0;
+  if (els.mutationTableCount) {
+    els.mutationTableCount.textContent = totalRows
+      ? `Showing ${formatNumber(startRow)}-${formatNumber(endRow)} of ${formatNumber(totalRows)}`
+      : "0 rows";
+  }
+  if (els.mutationPageSummary) {
+    els.mutationPageSummary.textContent = `Page ${formatNumber(state.mutationPage)} of ${formatNumber(state.mutationTotalPages)}`;
+  }
+  if (els.mutationPagePrev) {
+    els.mutationPagePrev.disabled = state.mutationPage <= 1;
+  }
+  if (els.mutationPageNext) {
+    els.mutationPageNext.disabled = state.mutationPage >= state.mutationTotalPages;
+  }
+  if (els.mutationPageSize) {
+    els.mutationPageSize.value = String(state.mutationPageSize);
+  }
+
+  els.mutationDetailTable.innerHTML = state.mutationDetails
+    .map((item) => {
+      const selected = item.mutationDetailId === state.selectedMutationDetail?.mutationDetailId;
+      return `
+        <tr
+          class="${selected ? "selected" : ""}"
+          data-mutation-detail-id="${item.mutationDetailId}"
+          tabindex="0"
+          aria-selected="${selected}"
+        >
+          <td>
+            <input
+              type="radio"
+              name="mutation-detail-selection"
+              value="${item.mutationDetailId}"
+              aria-label="Select ${escapeHtml(item.geneSymbol)} ${escapeHtml(item.proteinChange)}"
+              ${selected ? "checked" : ""}
+            />
+          </td>
+          <td><strong>${escapeHtml(item.geneSymbol)}</strong></td>
+          <td>${item.protein ? escapeHtml(item.protein.proteinName) : `<span class="empty-inline">No curated structure</span>`}</td>
+          <td><code>${escapeHtml(item.proteinChange)}</code></td>
+          <td>${item.aminoAcidPosition ? formatNumber(item.aminoAcidPosition) : `<span class="empty-inline">Not available</span>`}</td>
+          <td>${escapeHtml(item.variantClassification)}</td>
+          <td>${formatNumber(item.mutatedSampleCount)}</td>
+          <td>${formatNumber(item.mutationRecords)}</td>
+        </tr>
+      `;
+    })
+    .join("") || `<tr><td colspan="8">No mutations match the selected filters.</td></tr>`;
+
+  els.mutationDetailTable.querySelectorAll("tr[data-mutation-detail-id]").forEach((row) => {
+    const selectRow = () => {
+      selectMutationDetail(Number(row.dataset.mutationDetailId));
+    };
+    row.addEventListener("click", selectRow);
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      selectRow();
+    });
+  });
+}
+
+async function loadMutationTable() {
+  if (!els.mutationDetailTable) return;
+  els.mutationDetailTable.innerHTML = `<tr><td colspan="8">Loading mutations from coad_web...</td></tr>`;
+  if (els.mutationTableCount) els.mutationTableCount.textContent = "Loading";
+  if (els.mutationPageSummary) els.mutationPageSummary.textContent = "Loading";
+
+  const params = new URLSearchParams({
+    page: String(state.mutationPage),
+    pageSize: String(state.mutationPageSize)
+  });
+  if (state.mutationGeneFilter !== "all") params.set("geneSymbol", state.mutationGeneFilter);
+  if (state.mutationTypeFilter !== "all") params.set("variantClassification", state.mutationTypeFilter);
 
   try {
-    const [detail, hotspots] = await Promise.all([
-      fetchJson(`/api/mutation-analysis/genes/${encodeURIComponent(geneSymbol)}`),
-      fetchJson(`/api/mutation-analysis/genes/${encodeURIComponent(geneSymbol)}/hotspots`)
-    ]);
-    state.mutationGeneDetail = detail;
-    state.mutationHotspots = hotspots;
-    renderMutationGenePanels();
+    const payload = await fetchJson(`/api/mutation-analysis/mutations?${params.toString()}`);
+    state.mutationDetails = payload.items || [];
+    state.mutationTotalRows = payload.totalRows || 0;
+    state.mutationPage = payload.page || state.mutationPage;
+    state.mutationPageSize = payload.pageSize || state.mutationPageSize;
+    state.mutationTotalPages = payload.totalPages || 1;
+    if (
+      state.selectedMutationDetail
+      && !state.mutationDetails.some((item) => item.mutationDetailId === state.selectedMutationDetail.mutationDetailId)
+    ) {
+      state.selectedMutationDetail = null;
+      state.mutationHotspots = [];
+      state.mutationLocationMutations = [];
+      renderMutationStructure();
+      renderMutationMapper();
+    }
+    renderMutationTable();
   } catch (error) {
-    state.mutationGeneDetail = null;
-    state.mutationHotspots = [];
-    if (els.mutationGeneDetail) els.mutationGeneDetail.innerHTML = `<p class="empty">Unable to load ${escapeHtml(geneSymbol)}: ${escapeHtml(error.message)}</p>`;
+    state.mutationDetails = [];
+    state.mutationTotalRows = 0;
+    state.mutationTotalPages = 1;
+    els.mutationDetailTable.innerHTML = `<tr><td colspan="8">Unable to load mutation table: ${escapeHtml(error.message)}</td></tr>`;
+    if (els.mutationTableCount) els.mutationTableCount.textContent = "Unavailable";
+    if (els.mutationPageSummary) els.mutationPageSummary.textContent = "Unavailable";
   }
+}
+
+async function selectMutationDetail(mutationDetailId) {
+  const detail = state.mutationDetails.find((item) => item.mutationDetailId === mutationDetailId);
+  if (!detail) return;
+
+  state.selectedMutationDetail = detail;
+  state.selectedGene = detail.geneSymbol;
+  state.mutationHotspots = [];
+  state.mutationLocationMutations = [];
+  renderMutationTable();
+  renderMutationStructure();
+  if (els.mutationMapperCard) {
+    els.mutationMapperCard.innerHTML = `<p class="empty">Loading ${escapeHtml(detail.geneSymbol)} mutation locations...</p>`;
+  }
+
+  try {
+    const [hotspots, allMutations] = await Promise.all([
+      fetchJson(`/api/mutation-analysis/genes/${encodeURIComponent(detail.geneSymbol)}/hotspots`),
+      fetchJson(`/api/mutation-analysis/genes/${encodeURIComponent(detail.geneSymbol)}/mutations`)
+    ]);
+    state.mutationHotspots = hotspots;
+    state.mutationLocationMutations = allMutations;
+  } catch (_error) {
+    state.mutationHotspots = [];
+    state.mutationLocationMutations = [];
+  }
+  renderMutationMapper();
 }
 
 function filteredMutationDrugs() {
@@ -1093,13 +1600,14 @@ function renderNoMatchDrawer(drug) {
 
 function renderDrugDetailDrawer(detail) {
   if (!els.drugDrawerContent) return;
+  const showChemicalStructure = Boolean(detail.molecularFormula && detail.structureImageUrlOrSvg);
   els.drugDrawerContent.innerHTML = `
     <div class="drawer-head">
       <span class="section-kicker">Compound detail</span>
       <h2 id="drug-drawer-title">${escapeHtml(detail.drugName)}</h2>
       <p>${escapeHtml(detail.compoundName || "Local ChEMBL compound")} from the compact COAD web schema.</p>
     </div>
-    ${detail.structureImageUrlOrSvg ? `<figure class="compound-structure"><img src="${escapeHtml(detail.structureImageUrlOrSvg)}" alt="Chemical structure for ${escapeHtml(detail.compoundName)}" /></figure>` : ""}
+    ${showChemicalStructure ? `<figure class="compound-structure"><img src="${escapeHtml(detail.structureImageUrlOrSvg)}" alt="Chemical structure for ${escapeHtml(detail.compoundName)}" /></figure>` : ""}
     <dl class="drawer-facts">
       <div><dt>Compound</dt><dd>${escapeHtml(detail.compoundName || "Not available")}</dd></div>
       <div><dt>ChEMBL ID</dt><dd>${detail.chemblId ? externalLink(`https://www.ebi.ac.uk/chembl/compound_report_card/${detail.chemblId}/`, detail.chemblId) : "Not available"}</dd></div>
@@ -1150,20 +1658,24 @@ async function openDrugDrawer(drug, trigger) {
 async function loadMutationAnalysis() {
   if (!mutationPageActive()) return;
   try {
-    const [genes, drugs] = await Promise.all([
+    const [genes, mutationTypes, drugs] = await Promise.all([
       fetchJson("/api/mutation-analysis/genes"),
+      fetchJson("/api/mutation-analysis/mutation-types"),
       fetchJson("/api/mutation-analysis/drugs")
     ]);
     state.mutationGenes = genes;
+    state.mutationTypes = mutationTypes;
     state.mutationDrugs = drugs;
-    state.selectedGene = genes[0]?.geneSymbol || state.selectedGene;
     renderMutationGeneChart();
-    renderMutationGeneSummary();
+    renderMutationTypeChart();
+    populateMutationFilters();
+    renderMutationStructure();
+    renderMutationMapper();
     renderMutationDrugs();
-    if (state.selectedGene) await selectMutationGene(state.selectedGene);
+    await loadMutationTable();
   } catch (error) {
     const message = `Unable to load Mutation Analysis data from coad_web: ${escapeHtml(error.message)}`;
-    if (els.mutationGeneSummary) els.mutationGeneSummary.innerHTML = `<p class="empty">${message}</p>`;
+    if (els.mutationDetailTable) els.mutationDetailTable.innerHTML = `<tr><td colspan="8">${message}</td></tr>`;
     if (els.mutationDrugTable) els.mutationDrugTable.innerHTML = `<tr><td colspan="6">${message}</td></tr>`;
   }
 }
@@ -1295,6 +1807,43 @@ function bindEvents() {
   els.compoundSort?.addEventListener("change", () => {
     state.compoundSort = els.compoundSort.value;
     renderCompounds();
+  });
+  els.mutationGeneFilter?.addEventListener("change", () => {
+    state.mutationGeneFilter = els.mutationGeneFilter.value;
+    state.mutationPage = 1;
+    state.selectedMutationDetail = null;
+    state.mutationHotspots = [];
+    state.mutationLocationMutations = [];
+    renderMutationGeneChart();
+    renderMutationStructure();
+    renderMutationMapper();
+    loadMutationTable();
+  });
+  els.mutationTypeFilter?.addEventListener("change", () => {
+    state.mutationTypeFilter = els.mutationTypeFilter.value;
+    state.mutationPage = 1;
+    state.selectedMutationDetail = null;
+    state.mutationHotspots = [];
+    state.mutationLocationMutations = [];
+    renderMutationTypeChart();
+    renderMutationStructure();
+    renderMutationMapper();
+    loadMutationTable();
+  });
+  els.mutationPagePrev?.addEventListener("click", () => {
+    if (state.mutationPage <= 1) return;
+    state.mutationPage -= 1;
+    loadMutationTable();
+  });
+  els.mutationPageNext?.addEventListener("click", () => {
+    if (state.mutationPage >= state.mutationTotalPages) return;
+    state.mutationPage += 1;
+    loadMutationTable();
+  });
+  els.mutationPageSize?.addEventListener("change", () => {
+    state.mutationPageSize = Number(els.mutationPageSize.value) || 50;
+    state.mutationPage = 1;
+    loadMutationTable();
   });
   els.mutationDrugSearch?.addEventListener("input", () => {
     state.mutationDrugQuery = els.mutationDrugSearch.value;

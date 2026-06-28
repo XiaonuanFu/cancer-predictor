@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Pool, type QueryResultRow } from "pg";
@@ -54,6 +54,40 @@ interface MutationHotspotResponse {
   displayOrder: number;
 }
 
+interface MutationTypeResponse {
+  variantClassification: string;
+  mutationRecords: number;
+  mutatedSampleCount: number;
+  affectedGeneCount: number;
+  displayOrder: number;
+}
+
+interface MutationDetailResponse {
+  mutationDetailId: number;
+  geneSymbol: string;
+  proteinChange: string;
+  aminoAcidPosition: number | null;
+  aminoAcids: string | null;
+  variantClassification: string;
+  mutatedSampleCount: number;
+  mutationRecords: number;
+  protein: {
+    proteinName: string;
+    uniprotId: string;
+    alphafoldUrl: string;
+    proteinLength: number | null;
+    structureNote: string;
+  } | null;
+}
+
+interface MutationDetailPageResponse {
+  items: MutationDetailResponse[];
+  totalRows: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 interface DrugListResponse {
   drugSlug: string;
   drugName: string;
@@ -79,6 +113,24 @@ interface DrugDetailResponse extends DrugListResponse {
     meshHeading: string | null;
     efoTerm: string | null;
   }>;
+}
+
+interface AlphaFoldPrediction {
+  entryId?: string;
+  pdbUrl?: string;
+  latestVersion?: number;
+}
+
+interface CachedProteinStructure {
+  data: Buffer;
+  sourceUrl: string;
+  fetchedAt: number;
+  contentType: string;
+  structureFormat: "pdb" | "bcif";
+  entryId: string;
+  fragmentStart?: number;
+  fragmentEnd?: number;
+  selectedResidueLocal?: number;
 }
 
 interface ProjectSummary {
@@ -151,9 +203,17 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const staticDir = path.join(__dirname, "..", "public");
 const siteDataPath = path.join(staticDir, "data", "coad-project-data.json");
+const nglBundlePath = path.join(__dirname, "..", "node_modules", "ngl", "dist", "ngl.js");
+const proteinStructureCache = new Map<string, CachedProteinStructure>();
+const proteinStructureCacheLifetimeMs = 24 * 60 * 60 * 1000;
 let pool: Pool | null = null;
 
 app.use(express.json({ limit: "16kb" }));
+app.get("/vendor/ngl.js", (_req: Request, res: Response, next: NextFunction) => {
+  res.sendFile(nglBundlePath, (error) => {
+    if (error) next(error);
+  });
+});
 app.use(express.static(staticDir));
 
 async function readSiteData(): Promise<SiteData> {
@@ -208,6 +268,48 @@ function normalizeGeneSymbol(value: string): string | null {
 function normalizeChemblId(value: string): string | null {
   const chemblId = value.trim().toUpperCase();
   return /^CHEMBL[0-9]+$/.test(chemblId) ? chemblId : null;
+}
+
+function normalizeUniprotId(value: string): string | null {
+  const uniprotId = value.trim().toUpperCase();
+  return /^[A-Z0-9]{6,10}$/.test(uniprotId) ? uniprotId : null;
+}
+
+function requestedProteinPosition(req: Request): number | null {
+  const raw = typeof req.query.position === "string" ? Number(req.query.position) : NaN;
+  if (!Number.isFinite(raw)) return null;
+  const position = Math.trunc(raw);
+  return position > 0 && position < 100000 ? position : null;
+}
+
+function rcsbAlphaFoldId(uniprotId: string, position: number | null): {
+  entryId: string;
+  fragmentStart: number;
+  fragmentEnd: number;
+  selectedResidueLocal: number | null;
+} {
+  const fragmentIndex = position ? Math.max(Math.floor((position - 1) / 200) + 1, 1) : 1;
+  const fragmentStart = (fragmentIndex - 1) * 200 + 1;
+  const fragmentEnd = fragmentStart + 1399;
+  return {
+    entryId: `AF_AF${uniprotId}F${fragmentIndex}`,
+    fragmentStart,
+    fragmentEnd,
+    selectedResidueLocal: position ? position - fragmentStart + 1 : null
+  };
+}
+
+function setStructureHeaders(res: Response, cached: CachedProteinStructure) {
+  res.set({
+    "Cache-Control": "public, max-age=86400",
+    "Content-Type": cached.contentType,
+    "X-Structure-Format": cached.structureFormat,
+    "X-Structure-Entry": cached.entryId,
+    "X-Structure-Source": cached.sourceUrl
+  });
+  if (cached.fragmentStart) res.set("X-Fragment-Start", String(cached.fragmentStart));
+  if (cached.fragmentEnd) res.set("X-Fragment-End", String(cached.fragmentEnd));
+  if (cached.selectedResidueLocal) res.set("X-Selected-Residue-Local", String(cached.selectedResidueLocal));
 }
 
 function sendDatabaseError(res: Response<ErrorResponse>, error: unknown, message = "Unable to load mutation analysis data.") {
@@ -278,6 +380,140 @@ app.get("/api/mutation-analysis/genes", async (_req: Request, res: Response<Muta
     })));
   } catch (error) {
     sendDatabaseError(res, error);
+  }
+});
+
+app.get("/api/mutation-analysis/mutation-types", async (_req: Request, res: Response<MutationTypeResponse[] | ErrorResponse>) => {
+  try {
+    const rows = await queryRows<{
+      variant_classification: string;
+      mutation_records: number;
+      mutated_sample_count: number;
+      affected_gene_count: number;
+      display_order: number;
+    }>(`
+      SELECT
+        variant_classification,
+        mutation_records,
+        mutated_sample_count,
+        affected_gene_count,
+        display_order
+      FROM coad_web.mutation_type_frequencies
+      ORDER BY display_order
+    `);
+
+    res.json(rows.map((row) => ({
+      variantClassification: row.variant_classification,
+      mutationRecords: numeric(row.mutation_records),
+      mutatedSampleCount: numeric(row.mutated_sample_count),
+      affectedGeneCount: numeric(row.affected_gene_count),
+      displayOrder: numeric(row.display_order)
+    })));
+  } catch (error) {
+    sendDatabaseError(res, error, "Unable to load mutation type summary.");
+  }
+});
+
+app.get("/api/mutation-analysis/mutations", async (req: Request, res: Response<MutationDetailPageResponse | ErrorResponse>) => {
+  const geneValue = typeof req.query.geneSymbol === "string" ? req.query.geneSymbol : "";
+  const geneSymbol = geneValue ? normalizeGeneSymbol(geneValue) : null;
+  if (geneValue && !geneSymbol) {
+    res.status(400).json({ message: "Invalid gene symbol." });
+    return;
+  }
+
+  const variantClassification = typeof req.query.variantClassification === "string"
+    ? req.query.variantClassification.trim()
+    : "";
+  if (variantClassification.length > 100) {
+    res.status(400).json({ message: "Invalid mutation type." });
+    return;
+  }
+
+  const requestedPage = Number(req.query.page || 1);
+  const page = Number.isFinite(requestedPage) ? Math.max(Math.trunc(requestedPage), 1) : 1;
+  const requestedPageSize = Number(req.query.pageSize || 50);
+  const pageSize = Number.isFinite(requestedPageSize)
+    ? Math.min(Math.max(Math.trunc(requestedPageSize), 10), 500)
+    : 50;
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const countRows = await queryRows<{ total_rows: number }>(`
+      SELECT COUNT(*)::int AS total_rows
+      FROM coad_web.mutation_details d
+      WHERE ($1::text IS NULL OR d.gene_symbol = $1)
+        AND ($2::text IS NULL OR d.variant_classification = $2)
+    `, [geneSymbol, variantClassification || null]);
+    const totalRows = countRows.length ? numeric(countRows[0].total_rows) : 0;
+    const totalPages = Math.max(Math.ceil(totalRows / pageSize), 1);
+    const currentPage = Math.min(page, totalPages);
+    const currentOffset = (currentPage - 1) * pageSize;
+
+    const rows = await queryRows<{
+      mutation_detail_id: number;
+      gene_symbol: string;
+      protein_change: string;
+      amino_acid_position: number | null;
+      amino_acids: string | null;
+      variant_classification: string;
+      mutated_sample_count: number;
+      mutation_records: number;
+      protein_name: string | null;
+      uniprot_id: string | null;
+      alphafold_url: string | null;
+      protein_length: number | null;
+      structure_note: string | null;
+    }>(`
+      SELECT
+        d.mutation_detail_id,
+        d.gene_symbol,
+        d.protein_change,
+        d.amino_acid_position,
+        d.amino_acids,
+        d.variant_classification,
+        d.mutated_sample_count,
+        d.mutation_records,
+        p.protein_name,
+        p.uniprot_id,
+        p.alphafold_url,
+        p.protein_length,
+        p.structure_note
+      FROM coad_web.mutation_details d
+      LEFT JOIN coad_web.protein_structure_targets p
+        ON p.gene_symbol = d.gene_symbol
+      WHERE ($1::text IS NULL OR d.gene_symbol = $1)
+        AND ($2::text IS NULL OR d.variant_classification = $2)
+      ORDER BY d.mutated_sample_count DESC, d.mutation_records DESC, d.display_order
+      LIMIT $3
+      OFFSET $4
+    `, [geneSymbol, variantClassification || null, pageSize, currentOffset]);
+
+    res.json({
+      items: rows.map((row) => ({
+      mutationDetailId: numeric(row.mutation_detail_id),
+      geneSymbol: row.gene_symbol,
+      proteinChange: row.protein_change,
+      aminoAcidPosition: nullableNumeric(row.amino_acid_position),
+      aminoAcids: row.amino_acids,
+      variantClassification: row.variant_classification,
+      mutatedSampleCount: numeric(row.mutated_sample_count),
+      mutationRecords: numeric(row.mutation_records),
+      protein: row.protein_name && row.uniprot_id && row.alphafold_url ? {
+        proteinName: row.protein_name,
+        uniprotId: row.uniprot_id,
+        alphafoldUrl: row.alphafold_url,
+        proteinLength: nullableNumeric(row.protein_length),
+        structureNote: row.structure_note || ""
+      } : null
+      })),
+      totalRows,
+      page: currentPage,
+      pageSize,
+      totalPages
+    });
+  } catch (error) {
+    sendDatabaseError(res, error, "Unable to load mutation table.");
   }
 });
 
@@ -399,6 +635,181 @@ app.get("/api/mutation-analysis/genes/:geneSymbol/hotspots", async (req: Request
     })));
   } catch (error) {
     sendDatabaseError(res, error);
+  }
+});
+
+app.get("/api/mutation-analysis/genes/:geneSymbol/mutations", async (req: Request, res: Response<MutationHotspotResponse[] | ErrorResponse>) => {
+  const geneSymbol = normalizeGeneSymbol(String(req.params.geneSymbol));
+  if (!geneSymbol) {
+    res.status(400).json({ message: "Invalid gene symbol." });
+    return;
+  }
+
+  try {
+    const rows = await queryRows<{
+      gene_symbol: string;
+      protein_change: string;
+      amino_acid_position: number | null;
+      amino_acids: string | null;
+      variant_classification: string;
+      mutated_sample_count: number;
+      mutation_records: number;
+      display_order: number;
+    }>(`
+      SELECT
+        gene_symbol,
+        protein_change,
+        amino_acid_position,
+        amino_acids,
+        variant_classification,
+        mutated_sample_count,
+        mutation_records,
+        display_order
+      FROM coad_web.mutation_details
+      WHERE gene_symbol = $1
+      ORDER BY amino_acid_position NULLS LAST, mutated_sample_count DESC, mutation_records DESC, display_order
+    `, [geneSymbol]);
+
+    res.json(rows.map((row) => ({
+      geneSymbol: row.gene_symbol,
+      proteinChange: row.protein_change,
+      aminoAcidPosition: nullableNumeric(row.amino_acid_position),
+      aminoAcids: row.amino_acids,
+      mutationLabel: row.variant_classification,
+      sampleCount: numeric(row.mutated_sample_count),
+      mutationRecords: numeric(row.mutation_records),
+      variantClassification: row.variant_classification,
+      cbioportalMutationMapperUrl: `https://www.cbioportal.org/mutation_mapper?standaloneMutationMapperGeneTab=${encodeURIComponent(row.gene_symbol)}`,
+      displayOrder: numeric(row.display_order)
+    })));
+  } catch (error) {
+    sendDatabaseError(res, error, "Unable to load all mutation locations.");
+  }
+});
+
+app.get("/api/mutation-analysis/proteins/:uniprotId/structure", async (req: Request, res: Response<Buffer | ErrorResponse>) => {
+  const uniprotId = normalizeUniprotId(String(req.params.uniprotId));
+  if (!uniprotId) {
+    res.status(400).json({ message: "Invalid UniProt ID." });
+    return;
+  }
+
+  try {
+    const targets = await queryRows<{ uniprot_id: string }>(`
+      SELECT uniprot_id
+      FROM coad_web.protein_structure_targets
+      WHERE uniprot_id = $1
+    `, [uniprotId]);
+
+    if (!targets[0]) {
+      res.status(404).json({ message: "Protein structure target not found in coad_web." });
+      return;
+    }
+
+    const proteinPosition = requestedProteinPosition(req);
+    const fragment = rcsbAlphaFoldId(uniprotId, proteinPosition);
+    const cacheKey = proteinPosition ? `${uniprotId}:${fragment.entryId}` : uniprotId;
+    const cached = proteinStructureCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < proteinStructureCacheLifetimeMs) {
+      setStructureHeaders(res, cached);
+      res.send(cached.data);
+      return;
+    }
+
+    const rcsbUrl = `https://models.rcsb.org/${encodeURIComponent(fragment.entryId)}.bcif`;
+    const rcsbResponse = await fetch(rcsbUrl, {
+      headers: {
+        Accept: "application/octet-stream",
+        "User-Agent": "COAD-Cancer-Predictor/0.1 (research structure fragment viewer)"
+      },
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (rcsbResponse.ok) {
+      const data = Buffer.from(await rcsbResponse.arrayBuffer());
+      if (!data.length || data.length > 40 * 1024 * 1024) {
+        throw new Error("RCSB computed structure fragment was empty or exceeded the allowed size.");
+      }
+      const record: CachedProteinStructure = {
+        data,
+        sourceUrl: rcsbUrl,
+        fetchedAt: Date.now(),
+        contentType: "application/octet-stream",
+        structureFormat: "bcif",
+        entryId: fragment.entryId,
+        fragmentStart: fragment.fragmentStart,
+        fragmentEnd: fragment.fragmentEnd,
+        selectedResidueLocal: fragment.selectedResidueLocal || undefined
+      };
+      proteinStructureCache.set(cacheKey, record);
+      setStructureHeaders(res, record);
+      res.send(data);
+      return;
+    }
+
+    const predictionResponse = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${encodeURIComponent(uniprotId)}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "COAD-Cancer-Predictor/0.1 (research structure viewer)"
+      },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (predictionResponse.status === 404) {
+      res.status(404).json({ message: "No RCSB fragment or AlphaFold structure is currently available for this protein position." });
+      return;
+    }
+    if (!predictionResponse.ok) {
+      throw new Error(`AlphaFold prediction lookup returned ${predictionResponse.status}.`);
+    }
+
+    const predictions = await predictionResponse.json() as AlphaFoldPrediction[];
+    const prediction = predictions.find((item) => item.pdbUrl);
+    if (!prediction?.pdbUrl) {
+      res.status(404).json({ message: "AlphaFold structure is not available for this protein." });
+      return;
+    }
+
+    const structureResponse = await fetch(prediction.pdbUrl, {
+      headers: {
+        Accept: "chemical/x-pdb,text/plain",
+        "User-Agent": "COAD-Cancer-Predictor/0.1 (research structure viewer)"
+      },
+      signal: AbortSignal.timeout(30000)
+    });
+    if (!structureResponse.ok) {
+      throw new Error(`AlphaFold structure download returned ${structureResponse.status}.`);
+    }
+
+    const data = Buffer.from(await structureResponse.arrayBuffer());
+    if (!data.length || data.length > 30 * 1024 * 1024) {
+      throw new Error("AlphaFold structure file was empty or exceeded the allowed size.");
+    }
+
+    proteinStructureCache.set(cacheKey, {
+      data,
+      sourceUrl: prediction.pdbUrl,
+      fetchedAt: Date.now(),
+      contentType: "chemical/x-pdb",
+      structureFormat: "pdb",
+      entryId: prediction.entryId || uniprotId
+    });
+
+    res.set({
+      "Cache-Control": "public, max-age=86400",
+      "Content-Type": "chemical/x-pdb",
+      "X-Structure-Format": "pdb",
+      "X-Structure-Entry": prediction.entryId || uniprotId,
+      "X-Structure-Source": prediction.pdbUrl,
+      "X-AlphaFold-Entry": prediction.entryId || uniprotId,
+      "X-AlphaFold-Version": String(prediction.latestVersion || ""),
+      "X-AlphaFold-Source": prediction.pdbUrl
+    });
+    res.send(data);
+  } catch (error) {
+    res.status(502).json({
+      message: "Unable to load the AlphaFold protein structure.",
+      detail: errorDetail(error)
+    });
   }
 });
 
@@ -543,7 +954,7 @@ app.get("/api/mutation-analysis/drugs/:chemblId", async (req: Request, res: Resp
       canonicalSmiles: row.canonical_smiles,
       standardInchiKey: row.standard_inchi_key,
       maxPhase: nullableNumeric(row.max_phase),
-      structureImageUrlOrSvg: row.structure_image_url_or_svg,
+      structureImageUrlOrSvg: row.molecular_formula ? row.structure_image_url_or_svg : null,
       chemblSourceNote: row.chembl_source_note,
       indications: indications.map((item) => ({
         indicationText: item.indication_text,

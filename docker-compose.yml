@@ -26,6 +26,13 @@ services:
       NODE_PORT: 3000
       NODE_START_COMMAND: npm start
       CONTACT_EMAIL: cookiekat987@gmail.com
+      PGHOST: bio-postgres
+      PGPORT: 5432
+      PGDATABASE: bio
+      PGUSER: bio
+      PGPASSWORD: bioanalysis
+    depends_on:
+      - postgres
     ports:
       - "8888:8888"
       - "3000:3000"

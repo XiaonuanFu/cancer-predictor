@@ -32,11 +32,9 @@
     <main class="screen-page biology-screen">
       <section class="section-band mutation-dashboard-screen" id="mutation-analysis">
         <div class="section-heading screen-heading mutation-heading">
-          <span class="section-kicker">Mutation Analysis</span>
           <h1>COAD Mutation Genes, Protein Hotspots, And Treatment Drug Context</h1>
           <p>
-            This page reads a compact local `coad_web` schema. Mutation summaries come from COAD-only TCGA records,
-            while chemical formulas and compound details come from curated ChEMBL records.
+            Database-backed COAD mutation summaries from TCGA, with local ChEMBL compound details.
           </p>
         </div>
 
@@ -57,14 +55,78 @@
               One sample can appear in more than one gene bar.
             </p>
           </article>
-          <aside class="mutation-summary-panel" id="mutation-gene-summary" aria-live="polite"></aside>
+          <article class="mutation-chart-panel">
+            <div class="panel-head">
+              <h2>COAD mutation types</h2>
+              <span>Mutation records</span>
+            </div>
+            <div
+              class="mutation-gene-chart"
+              id="mutation-type-chart"
+              role="img"
+              aria-label="Bar chart of COAD mutation types"
+            ></div>
+            <p>
+              Mutation types group DNA changes by their predicted effect on genes and proteins.
+              Counts show COAD mutation records in each group.
+            </p>
+          </article>
         </div>
 
-        <div class="mutation-detail-grid">
-          <article class="mutation-detail-panel" id="mutation-gene-detail" aria-live="polite"></article>
+        <div class="mutation-workspace-grid">
+          <section class="mutation-table-panel">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">Protein selection</span>
+                <h2>Mutation Table</h2>
+              </div>
+              <span id="mutation-table-count">0 rows</span>
+            </div>
+            <div class="mutation-table-tools">
+              <label>
+                <span>Gene</span>
+                <select id="mutation-gene-filter"></select>
+              </label>
+              <label>
+                <span>Mutation type</span>
+                <select id="mutation-type-filter"></select>
+              </label>
+            </div>
+            <div class="table-wrap mutation-table-wrap">
+              <table class="mutation-detail-table">
+                <thead>
+                  <tr>
+                    <th aria-label="Select"></th>
+                    <th>Gene</th>
+                    <th>Protein</th>
+                    <th>Protein change</th>
+                    <th>Protein position</th>
+                    <th>Mutation type</th>
+                    <th>Mutated samples</th>
+                    <th>Records</th>
+                  </tr>
+                </thead>
+                <tbody id="mutation-detail-table"></tbody>
+              </table>
+            </div>
+            <div class="mutation-pagination" aria-label="Mutation table pagination">
+              <button id="mutation-page-prev" type="button">Previous</button>
+              <span id="mutation-page-summary">Page 1</span>
+              <button id="mutation-page-next" type="button">Next</button>
+              <label>
+                <span>Rows</span>
+                <select id="mutation-page-size">
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="250">250</option>
+                  <option value="500">500</option>
+                </select>
+              </label>
+            </div>
+          </section>
           <article class="structure-card mutation-structure-panel" id="mutation-structure-card" aria-live="polite"></article>
-          <article class="mutation-card mutation-mapper-panel" id="mutation-mapper-card" aria-live="polite"></article>
         </div>
+        <article class="mutation-card mutation-mapper-panel mutation-mapper-row" id="mutation-mapper-card" aria-live="polite"></article>
       </section>
 
       <section class="section-band chembl-section mutation-drug-section" id="coad-drugs">
@@ -129,6 +191,7 @@
       Protein and drug links open public scientific resources. This page is research context, not treatment advice.
     </footer>
     <script src="/vendor/echarts.min.js"></script>
+    <script src="/vendor/ngl.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>
