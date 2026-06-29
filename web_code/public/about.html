@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="About page for the COAD Project research website."
+      content="About Nancy Fu and the COAD Cancer Predictor Independent Study project."
     />
     <title>About | COAD Project</title>
     <link rel="icon" type="image/png" href="/assets/logo1-transparent-cropped.png" />
@@ -33,40 +33,55 @@
       <section class="section-band contact-section" id="about">
         <div class="section-heading screen-heading">
           <span class="section-kicker">About</span>
-          <h1>About Nancy</h1>
-          <p>This page explains the COAD Project and keeps a simple email channel for questions or feedback.</p>
+          <h1>About the Project</h1>
+          <p>
+            The COAD Cancer Predictor is an Independent Study project by Nancy Fu, a student at
+            Tsinghua International School.
+          </p>
         </div>
         <div class="contact-layout">
-          <form class="contact-form" id="contact-form">
-            <label>
-              <span>Name</span>
-              <input name="name" type="text" placeholder="Your name" autocomplete="name" />
-            </label>
-            <label>
-              <span>Email</span>
-              <input name="email" type="email" placeholder="you@example.com" autocomplete="email" />
-            </label>
-            <label class="full">
-              <span>Message</span>
-              <textarea name="message" rows="6" maxlength="2000" placeholder="Type your question or feedback here..."></textarea>
-            </label>
-            <button class="button primary" type="submit">Send email</button>
-            <p class="form-note" id="contact-note">This form uses your email app. No message is stored by this website.</p>
-          </form>
-          <aside class="safety-card">
-            <h2>Your data and this site are safe.</h2>
-            <ul>
-              <li>Read-only website; no sign-in required.</li>
-              <li>No data uploads or raw database downloads.</li>
-              <li>No changes to datasets, notebooks, or source code.</li>
-              <li>Links open public scientific resources.</li>
-            </ul>
+          <article class="definition-panel about-project-card">
+            <h2>What I am studying</h2>
+            <p>
+              This project explores COAD (colon adenocarcinoma, a type of colon cancer) through public
+              TCGA and PanCanAtlas data. It brings clinical information, RNA expression, and mutation
+              data into one research workflow.
+            </p>
+            <p>
+              I use machine learning (training a program to find patterns in data) to study how tumor
+              and normal samples can be distinguished. I also examine frequently mutated genes, connect
+              mutation sites to protein structures, and study related compound information from
+              scientific resources such as AlphaFold, UniProt, NCI, and ChEMBL.
+            </p>
+            <p>
+              My goal is to learn how biology, data analysis, and computer science can work together in
+              cancer research, while presenting each step clearly enough for other students to follow.
+              This is an educational research project and is not intended for medical diagnosis.
+            </p>
+          </article>
+          <aside class="safety-card about-profile-card">
+            <h2>About Nancy Fu</h2>
+            <p>
+              I am Nancy Fu, a student at Tsinghua International School. I created this website and its
+              analysis as my Independent Study project.
+            </p>
+            <h3>Contact</h3>
+            <div class="about-contact-list">
+              <a class="contact-link" href="mailto:nancy.fu.2027@this.edu.cn">
+                <span>School email</span>
+                <strong>nancy.fu.2027@this.edu.cn</strong>
+              </a>
+              <a class="contact-link" href="mailto:xiaonuanfu2008@outlook.com">
+                <span>Personal email</span>
+                <strong>xiaonuanfu2008@outlook.com</strong>
+              </a>
+            </div>
           </aside>
         </div>
       </section>
     </main>
 
-    <footer class="page-footer">The contact flow opens an email app and does not store messages.</footer>
+    <footer class="page-footer">An Independent Study project by Nancy Fu at Tsinghua International School.</footer>
     <script src="/app.js"></script>
   </body>
 </html>

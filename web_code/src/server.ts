@@ -341,7 +341,7 @@ app.get("/api/site-data", async (_req: Request, res: Response<SiteData | ErrorRe
 });
 
 app.get("/api/contact", (_req: Request, res: Response<ContactResponse>) => {
-  const email = process.env.CONTACT_EMAIL || "cookiekat987@gmail.com";
+  const email = process.env.CONTACT_EMAIL || "nancy.fu.2027@this.edu.cn";
   res.json({
     mode: "mailto",
     email,

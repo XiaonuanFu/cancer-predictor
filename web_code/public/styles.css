@@ -16,7 +16,7 @@
   --shadow: 0 18px 70px rgba(16, 50, 45, 0.1);
   --radius: 8px;
   --serif: "Times New Roman", Times, serif;
-  --sans: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  --sans: "Times New Roman", Times, serif;
 }
 
 * {
@@ -25,6 +25,7 @@
 
 html {
   scroll-behavior: smooth;
+  font-family: var(--serif);
 }
 
 body {
@@ -33,7 +34,7 @@ body {
   background:
     linear-gradient(180deg, rgba(232, 241, 251, 0.45), rgba(251, 252, 251, 0) 440px),
     var(--paper);
-  font-family: var(--sans);
+  font-family: var(--serif);
 }
 
 body::before {
@@ -1303,7 +1304,7 @@ td {
 
 code {
   color: var(--ink);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: var(--serif);
   font-size: 0.95rem;
 }
 
@@ -1435,6 +1436,22 @@ details div {
 .safety-card h3 {
   margin-top: 0;
   font-size: 1.4rem;
+}
+
+.about-project-card h2,
+.about-profile-card h2 {
+  margin-top: 0;
+}
+
+.about-project-card p,
+.about-profile-card p {
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.about-contact-list {
+  display: grid;
+  gap: 12px;
 }
 
 .site-footer {
@@ -3379,73 +3396,291 @@ details div {
   width: 100%;
   margin: 16px 0 18px;
   overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background:
-    linear-gradient(180deg, rgba(232, 241, 251, 0.45), rgba(255, 255, 255, 0) 44%),
-    #fff;
+  border: 1px solid #cad3d0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  scrollbar-color: #91a19d #eef2f1;
+  scrollbar-width: thin;
+}
+
+.mutation-mapper-canvas {
+  position: relative;
+  min-width: 100%;
+}
+
+.mutation-mapper-tooltip {
+  position: absolute;
+  z-index: 12;
+  width: max-content;
+  min-width: 290px;
+  max-width: min(380px, calc(100vw - 48px));
+  padding: 15px 18px;
+  border: 1px solid rgba(28, 62, 54, 0.2);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 32px rgba(17, 43, 37, 0.2);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+
+.mutation-mapper-tooltip[hidden] {
+  display: none;
+}
+
+.mutation-mapper-tooltip-title {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--green);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.mutation-mapper-tooltip-details {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px 14px;
+  margin: 0;
+}
+
+.mutation-mapper-tooltip-details dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.mutation-mapper-tooltip-details dd {
+  margin: 0;
+  font-weight: 800;
 }
 
 .mutation-mapper-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(250px, 1fr) minmax(210px, 0.8fr) auto;
+  gap: 14px 22px;
   align-items: center;
-  margin: 10px 0 0;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f9f8;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 
 .mutation-mapper-tools label {
-  display: inline-flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px 10px;
   align-items: center;
+  min-width: 0;
+}
+
+.mutation-mapper-tools label > span {
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mutation-mapper-tools select {
+  width: auto;
+  min-width: 0;
+  min-height: 34px;
+  padding: 5px 30px 5px 9px;
+  border-color: #bdc9c6;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
 }
 
 .mutation-mapper-tools input[type="range"] {
-  width: 180px;
+  width: 100%;
+  min-width: 100px;
   padding: 0;
   accent-color: var(--green);
 }
 
+.mutation-mapper-tools output {
+  display: inline-grid;
+  min-width: 34px;
+  min-height: 30px;
+  place-items: center;
+  border: 1px solid #bdc9c6;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.mutation-mapper-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mutation-mapper-actions button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #bdc9c6;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.mutation-mapper-actions button:hover,
+.mutation-mapper-actions button:focus-visible {
+  border-color: var(--green);
+  color: var(--green);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.mutation-mapper-legend {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 7px 16px;
+  padding: 10px 12px;
+  border: 1px solid #ccd5d2;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(26, 48, 43, 0.1);
+  color: #53615e;
+  font-size: 12px;
+}
+
+.mutation-mapper-legend strong {
+  grid-column: 1 / -1;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.mutation-mapper-legend span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.mutation-mapper-legend i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--legend-color);
+}
+
+.mutation-mapper-legend .selected-ring {
+  border: 2px solid #d6504a;
+  background: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
 .cbioportal-mutation-mapper svg {
   display: block;
-  width: 100%;
   max-width: none;
-  min-width: 720px;
+  min-width: 1040px;
   height: auto;
 }
 
-.cbio-axis line {
-  stroke: #8fa9a4;
-  stroke-width: 1.4;
+.cbio-axis line,
+.cbio-y-axis line {
+  stroke: #84918f;
+  stroke-width: 1.2;
+}
+
+.cbio-axis text,
+.cbio-y-axis text {
+  fill: #4d5b59;
+  font-family: var(--serif);
+  font-size: 14px;
 }
 
 .cbio-axis text {
-  fill: var(--muted);
-  font-family: var(--serif);
-  font-size: 20px;
   text-anchor: middle;
 }
 
-.cbio-domains rect {
+.cbio-y-axis text {
+  text-anchor: end;
+}
+
+.cbio-y-axis .cbio-y-title {
+  fill: #263531;
+  font-size: 15px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.cbio-axis .cbio-x-title {
+  fill: #263531;
+  font-size: 14px;
+  font-weight: 700;
+  text-anchor: end;
+}
+
+.cbio-domains .protein-backbone {
+  fill: #b9bfbc;
   stroke: rgba(9, 47, 41, 0.14);
 }
 
+.cbio-domain {
+  cursor: help;
+}
+
+.cbio-domain rect {
+  stroke: rgba(22, 47, 42, 0.18);
+  stroke-width: 1;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+.cbio-domain:hover rect {
+  filter: brightness(1.06) saturate(1.1);
+}
+
+.cbio-domain text {
+  fill: #fff;
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 800;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(20, 44, 39, 0.18);
+  stroke-width: 2px;
+}
+
 .cbio-lollipop line {
-  stroke: var(--coral);
-  stroke-width: 2;
+  stroke: #9da8a5;
+  stroke-width: 1.3;
 }
 
 .cbio-lollipop circle {
   stroke: #fff;
   stroke-width: 2;
+  cursor: help;
+  transition: r 140ms ease, stroke 140ms ease;
+}
+
+.cbio-lollipop.is-selected circle {
+  stroke: #d6504a;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px rgba(214, 80, 74, 0.55));
 }
 
 .cbio-lollipop text {
-  fill: #c93631;
+  fill: #21302d;
   font-family: var(--serif);
-  font-size: 17px;
+  font-size: 13px;
+  font-weight: 700;
   text-anchor: middle;
   paint-order: stroke;
   stroke: #fff;
@@ -3457,6 +3692,58 @@ details div {
 .cbio-lollipop:focus-visible circle {
   stroke: var(--ink);
   stroke-width: 3;
+  r: 11px;
+}
+
+.cbio-lollipop:focus-visible {
+  outline: none;
+}
+
+.mutation-mapper-help {
+  margin: 0 0 12px;
+  font-size: 0.86rem;
+}
+
+.mutation-mapper-list {
+  margin: 0 0 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.mutation-mapper-list summary {
+  padding: 11px 0;
+  color: var(--green);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mutation-mapper-list ul {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+@media (max-width: 1160px) {
+  .mutation-mapper-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .mutation-mapper-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .mutation-mapper-actions {
+    justify-content: stretch;
+  }
+
+  .mutation-mapper-actions button {
+    flex: 1;
+  }
 }
 
 .empty,

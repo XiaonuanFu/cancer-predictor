@@ -89,5 +89,6 @@ from `coad_web`.
 
 ## Contact
 
-Set `CONTACT_EMAIL` to change the public mailto destination. The v1 contact flow
-opens the visitor's email app and does not store messages.
+The About page lists Nancy's school and personal email addresses as direct
+`mailto` links. Set `CONTACT_EMAIL` to change the school email returned by the
+contact metadata API.

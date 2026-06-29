@@ -19,6 +19,9 @@ const state = {
   mutationHotspots: [],
   mutationLocationMutations: [],
   mutationMapperZoom: 1,
+  mutationMapperYMax: null,
+  mutationMapperAnnotation: "domains",
+  mutationMapperShowLegend: true,
   mutationDrugs: [],
   mutationDrugQuery: "",
   mutationDrugEvidence: "all",
@@ -27,7 +30,63 @@ const state = {
   glossaryQuery: "",
   glossaryCategory: "all",
   sourceType: "all",
-  contactEmail: "cookiekat987@gmail.com"
+  contactEmail: "nancy.fu.2027@this.edu.cn"
+};
+
+const MUTATION_TYPE_STYLES = {
+  Missense_Mutation: { color: "#13883b", label: "Missense" },
+  Nonsense_Mutation: { color: "#202628", label: "Nonsense" },
+  Frame_Shift_Del: { color: "#d16a20", label: "Frameshift deletion" },
+  Frame_Shift_Ins: { color: "#e0872e", label: "Frameshift insertion" },
+  In_Frame_Del: { color: "#2f71b7", label: "In-frame deletion" },
+  In_Frame_Ins: { color: "#178a91", label: "In-frame insertion" },
+  Splice_Site: { color: "#7c4ca5", label: "Splice site" },
+  Translation_Start_Site: { color: "#bf4f79", label: "Translation start" },
+  Nonstop_Mutation: { color: "#8b5738", label: "Nonstop" },
+  default: { color: "#697477", label: "Other" }
+};
+
+const PROTEIN_DOMAIN_TRACKS = {
+  APC: [
+    { startCodon: 1, endCodon: 55, label: "Oligomerization", color: "#31b8a4" },
+    { startCodon: 453, endCodon: 767, label: "Armadillo repeats", color: "#5a7be7" },
+    { startCodon: 1020, endCodon: 1169, label: "15-aa repeats", color: "#ef795e" },
+    { startCodon: 1265, endCodon: 2035, label: "20-aa repeats", color: "#d9a72f" },
+    { startCodon: 2200, endCodon: 2400, label: "Basic region", color: "#72a74c" }
+  ],
+  TP53: [
+    { startCodon: 1, endCodon: 61, label: "Transactivation", color: "#31b8a4" },
+    { startCodon: 64, endCodon: 92, label: "Proline-rich", color: "#ef795e" },
+    { startCodon: 94, endCodon: 292, label: "DNA-binding", color: "#5a7be7" },
+    { startCodon: 325, endCodon: 356, label: "Tetramerization", color: "#d9a72f" },
+    { startCodon: 363, endCodon: 393, label: "Regulatory", color: "#72a74c" }
+  ],
+  KRAS: [
+    { startCodon: 1, endCodon: 166, label: "Small GTPase", color: "#5a7be7" },
+    { startCodon: 167, endCodon: 189, label: "Hypervariable", color: "#ef795e" }
+  ],
+  BRAF: [
+    { startCodon: 151, endCodon: 232, label: "RAS-binding", color: "#31b8a4" },
+    { startCodon: 234, endCodon: 280, label: "Cysteine-rich", color: "#ef795e" },
+    { startCodon: 457, endCodon: 717, label: "Protein kinase", color: "#d9a72f" }
+  ],
+  PIK3CA: [
+    { startCodon: 1, endCodon: 108, label: "Adaptor-binding", color: "#31b8a4" },
+    { startCodon: 190, endCodon: 291, label: "RAS-binding", color: "#72a74c" },
+    { startCodon: 330, endCodon: 480, label: "C2", color: "#ef795e" },
+    { startCodon: 517, endCodon: 694, label: "Helical", color: "#5a7be7" },
+    { startCodon: 696, endCodon: 1068, label: "PI3/4-kinase", color: "#d9a72f" }
+  ],
+  SMAD4: [
+    { startCodon: 19, endCodon: 135, label: "MH1", color: "#31b8a4" },
+    { startCodon: 136, endCodon: 318, label: "Linker", color: "#ef795e" },
+    { startCodon: 319, endCodon: 543, label: "MH2", color: "#5a7be7" }
+  ],
+  TTN: [
+    { startCodon: 1, endCodon: 15300, label: "I-band repeats", color: "#31b8a4" },
+    { startCodon: 15301, endCodon: 27000, label: "A-band repeats", color: "#5a7be7" },
+    { startCodon: 27001, endCodon: 34350, label: "M-line region", color: "#d9a72f" }
+  ]
 };
 
 const els = {
@@ -251,7 +310,7 @@ function baseChartOption(chart) {
     animationDuration: 700,
     grid: { left: 58, right: 24, top: 34, bottom: 54, containLabel: true },
     tooltip: { trigger: "item", confine: true },
-    textStyle: { color: "#243935", fontFamily: "Avenir Next, Helvetica Neue, sans-serif" }
+    textStyle: { color: "#243935", fontFamily: "Times New Roman, Times, serif" }
   };
 }
 
@@ -1173,26 +1232,50 @@ function renderMutationStructure() {
 
 function buildCbioportalLollipopData(detail, mutations, proteinLength) {
   const sortedForLabels = [...mutations].sort((a, b) => (b.sampleCount || 0) - (a.sampleCount || 0));
-  const labelSet = new Set(
-    sortedForLabels.slice(0, 24).map((mutation) => `${mutation.aminoAcidPosition}:${mutation.proteinChange}`)
-  );
+  const selectedKey = `${detail.aminoAcidPosition}:${detail.proteinChange}`;
+  const selectedPosition = Number(detail.aminoAcidPosition || 0);
+  const labelledPositions = selectedPosition > 0 ? [selectedPosition] : [];
+  const labelSet = new Set(selectedPosition > 0 ? [selectedKey] : []);
+  const minimumLabelGap = Math.max(1, proteinLength / 18);
+  sortedForLabels.forEach((mutation) => {
+    if (labelSet.size >= 7) return;
+    const position = Number(mutation.aminoAcidPosition || 0);
+    const key = `${mutation.aminoAcidPosition}:${mutation.proteinChange}`;
+    if (!position || labelSet.has(key)) return;
+    if (labelledPositions.some((labelledPosition) => Math.abs(position - labelledPosition) < minimumLabelGap)) return;
+    labelledPositions.push(position);
+    labelSet.add(key);
+  });
   const lollipops = mutations
     .filter((mutation) => Number(mutation.aminoAcidPosition || 0) > 0)
-    .map((mutation) => ({
-      codon: Number(mutation.aminoAcidPosition),
-      count: Number(mutation.sampleCount || mutation.mutationRecords || 1),
-      color: mutation.aminoAcidPosition === detail.aminoAcidPosition && mutation.proteinChange === detail.proteinChange ? "#ec635c" : "#2b6fb3",
-      label: {
-        text: mutation.proteinChange,
-        show: labelSet.has(`${mutation.aminoAcidPosition}:${mutation.proteinChange}`)
-          || (mutation.aminoAcidPosition === detail.aminoAcidPosition && mutation.proteinChange === detail.proteinChange),
-        fontFamily: "Times New Roman"
-      },
-      proteinChange: mutation.proteinChange,
-      mutationType: mutation.variantClassification || mutation.mutationLabel || "Mutation"
-    }));
+    .map((mutation) => {
+      const mutationType = mutation.variantClassification || mutation.mutationLabel || "Other";
+      const typeStyle = MUTATION_TYPE_STYLES[mutationType] || MUTATION_TYPE_STYLES.default;
+      const selected = mutation.aminoAcidPosition === detail.aminoAcidPosition
+        && mutation.proteinChange === detail.proteinChange;
+      return {
+        codon: Number(mutation.aminoAcidPosition),
+        count: Number(mutation.sampleCount || mutation.mutationRecords || 1),
+        color: typeStyle.color,
+        typeLabel: typeStyle.label,
+        selected,
+        label: {
+          text: mutation.proteinChange.replace(/^p\./, ""),
+          show: labelSet.has(`${mutation.aminoAcidPosition}:${mutation.proteinChange}`) || selected
+        },
+        proteinChange: mutation.proteinChange,
+        mutationType
+      };
+    });
 
-  const midpoint = Math.max(1, Math.round(proteinLength / 2));
+  const domains = (PROTEIN_DOMAIN_TRACKS[detail.geneSymbol] || [])
+    .map((domain) => ({
+      ...domain,
+      startCodon: Math.max(1, Math.min(domain.startCodon, proteinLength)),
+      endCodon: Math.max(1, Math.min(domain.endCodon, proteinLength))
+    }))
+    .filter((domain) => domain.endCodon > domain.startCodon);
+
   return {
     hugoGeneSymbol: detail.geneSymbol,
     geneWidth: proteinLength,
@@ -1200,83 +1283,240 @@ function buildCbioportalLollipopData(detail, mutations, proteinLength) {
     yMax: Math.max(...lollipops.map((item) => item.count), 1),
     lollipops,
     zoom: state.mutationMapperZoom,
-    domains: [
-      { startCodon: 1, endCodon: midpoint, color: "#d8e6ed", label: "Protein" },
-      { startCodon: midpoint, endCodon: proteinLength, color: "#c4ddd7", label: "Protein" }
-    ],
+    domains,
     sourceComponent: "react-mutation-mapper/LollipopPlot"
   };
 }
 
+function mutationMapperTickValues(maximum, divisions = 4) {
+  const values = [];
+  for (let index = 0; index <= divisions; index += 1) {
+    values.push(Math.round((maximum * index) / divisions));
+  }
+  return [...new Set(values)];
+}
+
 function renderCbioportalLollipopPlot(plotData) {
-  const width = Math.max(1000, Math.min(22000, Math.round(plotData.xMax * 0.16 * plotData.zoom)));
-  const height = 260;
-  const axisY = 198;
-  const leftPad = 54;
-  const rightPad = 34;
-  const topPad = 36;
+  const width = Math.max(1040, Math.min(22000, Math.round(plotData.xMax * 0.22 * plotData.zoom)));
+  const height = 390;
+  const lollipopBaseY = 246;
+  const domainY = 252;
+  const xAxisY = 320;
+  const leftPad = 76;
+  const rightPad = 38;
+  const topPad = 54;
   const usableWidth = width - leftPad - rightPad;
-  const yMax = Math.max(plotData.yMax, 1);
+  const selectedYMax = Number(state.mutationMapperYMax);
+  const yMax = Math.max(selectedYMax || plotData.yMax, 1);
+  const capped = plotData.yMax > yMax;
 
   const xForCodon = (codon) => leftPad + Math.min(Math.max(codon / plotData.xMax, 0), 1) * usableWidth;
-  const yForCount = (count) => axisY - Math.max((count / yMax) * 132, 16);
-  const ticks = [1, Math.round(plotData.xMax / 3), Math.round((plotData.xMax * 2) / 3), plotData.xMax];
+  const yForCount = (count) => count > 0
+    ? lollipopBaseY - Math.max((Math.min(count, yMax) / yMax) * 172, 12)
+    : lollipopBaseY;
+  const ticks = [0, Math.round(plotData.xMax / 5), Math.round((plotData.xMax * 2) / 5), Math.round((plotData.xMax * 3) / 5), Math.round((plotData.xMax * 4) / 5), plotData.xMax];
+  const yTicks = mutationMapperTickValues(yMax);
   const labelSlots = [];
 
   const labelFor = (lollipop) => {
     const x = xForCodon(lollipop.codon);
-    let slot = labelSlots.findIndex((lastX) => Math.abs(x - lastX) > 92);
-    if (slot === -1) slot = labelSlots.length;
+    let slot = 0;
+    while (labelSlots[slot] !== undefined && Math.abs(x - labelSlots[slot]) < 82) slot += 1;
     labelSlots[slot] = x;
     return {
       x,
-      y: Math.max(topPad, yForCount(lollipop.count) - 16 - slot * 22)
+      y: Math.max(topPad - 8, yForCount(lollipop.count) - 14 - slot * 21)
     };
   };
 
+  const presentTypes = [...new Map(
+    plotData.lollipops.map((item) => [item.mutationType, { color: item.color, label: item.typeLabel }])
+  ).values()];
+  const domainsVisible = state.mutationMapperAnnotation === "domains" && plotData.domains.length;
+
   return `
     <div class="cbioportal-mutation-mapper" data-component-source="${escapeHtml(plotData.sourceComponent)}">
-      <svg viewBox="0 0 ${width} ${height}" style="width: ${width}px" role="img" aria-label="cBioPortal LollipopPlot for ${escapeHtml(plotData.hugoGeneSymbol)}">
-        <g class="cbio-axis">
-          <line x1="${leftPad}" y1="${axisY}" x2="${width - rightPad}" y2="${axisY}"></line>
+      <div class="mutation-mapper-canvas" style="width: ${width}px">
+        ${state.mutationMapperShowLegend ? `
+          <div class="mutation-mapper-legend" aria-label="Mutation type legend">
+            <strong>Mutation type</strong>
+            ${presentTypes.map((item) => `<span><i style="--legend-color: ${escapeHtml(item.color)}"></i>${escapeHtml(item.label)}</span>`).join("")}
+            <span><i class="selected-ring"></i>Selected row</span>
+          </div>
+        ` : ""}
+        <svg id="mutation-mapper-svg" viewBox="0 0 ${width} ${height}" style="width: ${width}px" role="img" aria-label="Mutation Mapper lollipop plot for ${escapeHtml(plotData.hugoGeneSymbol)}">
+          <g class="cbio-y-axis">
+            <line x1="${leftPad}" y1="${topPad}" x2="${leftPad}" y2="${lollipopBaseY}"></line>
+            ${yTicks.map((tick) => {
+              const y = yForCount(tick);
+              return `<g><line x1="${leftPad - 7}" y1="${y}" x2="${leftPad}" y2="${y}"></line><text x="${leftPad - 12}" y="${y + 5}">${tick === yMax && capped ? `≥ ${formatNumber(tick)}` : formatNumber(tick)}</text></g>`;
+            }).join("")}
+            <text class="cbio-y-title" transform="translate(22 ${(topPad + lollipopBaseY) / 2}) rotate(-90)">Mutated samples</text>
+          </g>
+          <g class="cbio-axis">
+            <line x1="${leftPad}" y1="${xAxisY}" x2="${width - rightPad}" y2="${xAxisY}"></line>
           ${ticks
             .map((tick) => {
               const x = xForCodon(tick);
-              return `<g><line x1="${x}" y1="${axisY}" x2="${x}" y2="${axisY + 6}"></line><text x="${x}" y="${axisY + 26}">${formatNumber(tick)}</text></g>`;
+              return `<g><line x1="${x}" y1="${xAxisY}" x2="${x}" y2="${xAxisY + 7}"></line><text x="${x}" y="${xAxisY + 29}">${formatNumber(tick)}</text></g>`;
             })
             .join("")}
-        </g>
-        <g class="cbio-domains">
-          ${plotData.domains
+            <text class="cbio-x-title" x="${width - rightPad}" y="${xAxisY + 54}">Amino acid position (aa)</text>
+          </g>
+          <g class="cbio-domains">
+            <rect class="protein-backbone" x="${leftPad}" y="${domainY}" width="${usableWidth}" height="28" rx="2"></rect>
+            ${domainsVisible ? plotData.domains
             .map((domain) => {
               const start = xForCodon(domain.startCodon);
               const end = xForCodon(domain.endCodon);
-              return `<rect x="${start}" y="${axisY - 10}" width="${Math.max(end - start, 1)}" height="20" fill="${escapeHtml(domain.color)}"></rect>`;
+              const domainWidth = Math.max(end - start, 2);
+              return `
+                <g class="cbio-domain">
+                  <g
+                    class="mutation-mapper-tooltip-target"
+                    tabindex="0"
+                    aria-label="${escapeHtml(domain.label)}, amino acids ${formatNumber(domain.startCodon)} to ${formatNumber(domain.endCodon)}"
+                    aria-describedby="mutation-mapper-tooltip"
+                    data-tooltip-title="${escapeHtml(domain.label)}"
+                    data-tooltip-position="Amino acids ${formatNumber(domain.startCodon)}–${formatNumber(domain.endCodon)}"
+                  >
+                  <rect x="${start}" y="${domainY - 7}" width="${domainWidth}" height="42" rx="2" fill="${escapeHtml(domain.color)}"></rect>
+                  ${domainWidth > 68 ? `<text x="${start + domainWidth / 2}" y="${domainY + 19}">${escapeHtml(domain.label)}</text>` : ""}
+                  </g>
+                </g>
+              `;
             })
-            .join("")}
-        </g>
-        <g class="cbio-lollipops">
-          ${plotData.lollipops
+            .join("") : ""}
+          </g>
+          <g class="cbio-lollipops">
+            ${plotData.lollipops
             .sort((a, b) => a.codon - b.codon)
             .map((lollipop) => {
               const x = xForCodon(lollipop.codon);
               const y = yForCount(lollipop.count);
-              const radius = Math.min(18, Math.max(7, 5 + Math.sqrt(lollipop.count)));
+              const radius = Math.min(10, Math.max(5, 4 + Math.sqrt(lollipop.count) * 0.8));
               const label = lollipop.label.show ? labelFor(lollipop) : null;
               return `
-                <g class="cbio-lollipop" tabindex="0">
-                  <title>${escapeHtml(lollipop.proteinChange)} at ${formatNumber(lollipop.codon)}: ${formatNumber(lollipop.count)} mutated samples</title>
-                  <line x1="${x}" y1="${axisY - 10}" x2="${x}" y2="${y}"></line>
+                <g
+                  class="cbio-lollipop mutation-mapper-tooltip-target${lollipop.selected ? " is-selected" : ""}"
+                  tabindex="0"
+                  aria-label="${escapeHtml(lollipop.proteinChange)}, position ${formatNumber(lollipop.codon)}, ${formatNumber(lollipop.count)} mutated samples, ${escapeHtml(lollipop.typeLabel)}"
+                  aria-describedby="mutation-mapper-tooltip"
+                  data-tooltip-title="${escapeHtml(lollipop.proteinChange)}"
+                  data-tooltip-position="Position ${formatNumber(lollipop.codon)}"
+                  data-tooltip-samples="${formatNumber(lollipop.count)} mutated samples"
+                  data-tooltip-type="${escapeHtml(lollipop.typeLabel)}"
+                >
+                  <line x1="${x}" y1="${domainY}" x2="${x}" y2="${y}"></line>
                   <circle cx="${x}" cy="${y}" r="${radius}" fill="${escapeHtml(lollipop.color)}"></circle>
                   ${label ? `<text x="${label.x}" y="${label.y}">${escapeHtml(lollipop.label.text)}</text>` : ""}
                 </g>
               `;
             })
             .join("")}
-        </g>
-      </svg>
+          </g>
+        </svg>
+        <div id="mutation-mapper-tooltip" class="mutation-mapper-tooltip" role="tooltip" hidden>
+          <strong class="mutation-mapper-tooltip-title"></strong>
+          <dl class="mutation-mapper-tooltip-details"></dl>
+        </div>
+      </div>
     </div>
   `;
+}
+
+function initializeMutationMapperTooltips() {
+  const canvas = document.querySelector(".mutation-mapper-canvas");
+  const tooltip = document.querySelector("#mutation-mapper-tooltip");
+  if (!canvas || !tooltip) return;
+
+  const title = tooltip.querySelector(".mutation-mapper-tooltip-title");
+  const details = tooltip.querySelector(".mutation-mapper-tooltip-details");
+  const targets = canvas.querySelectorAll(".mutation-mapper-tooltip-target");
+
+  const positionTooltip = (event, target) => {
+    const canvasRect = canvas.getBoundingClientRect();
+    const scroller = canvas.closest(".cbioportal-mutation-mapper");
+    const targetRect = target.getBoundingClientRect();
+    const clientX = Number.isFinite(event?.clientX) && event.clientX > 0
+      ? event.clientX
+      : targetRect.left + targetRect.width / 2;
+    const clientY = Number.isFinite(event?.clientY) && event.clientY > 0
+      ? event.clientY
+      : targetRect.top;
+    const visibleLeft = scroller ? scroller.scrollLeft + 12 : 12;
+    const visibleRight = scroller
+      ? scroller.scrollLeft + scroller.clientWidth - tooltip.offsetWidth - 12
+      : canvas.clientWidth - tooltip.offsetWidth - 12;
+    let left = clientX - canvasRect.left + 16;
+    let top = clientY - canvasRect.top - tooltip.offsetHeight - 14;
+
+    left = Math.min(Math.max(left, visibleLeft), Math.max(visibleLeft, visibleRight));
+    if (top < 8) top = clientY - canvasRect.top + 18;
+    top = Math.min(Math.max(top, 8), Math.max(8, canvas.clientHeight - tooltip.offsetHeight - 8));
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const showTooltip = (event) => {
+    const target = event.currentTarget;
+    title.textContent = target.dataset.tooltipTitle || "Mutation detail";
+    details.replaceChildren();
+    [
+      ["Location", target.dataset.tooltipPosition],
+      ["Samples", target.dataset.tooltipSamples],
+      ["Type", target.dataset.tooltipType]
+    ].forEach(([label, value]) => {
+      if (!value) return;
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      term.textContent = label;
+      description.textContent = value;
+      details.append(term, description);
+    });
+    tooltip.hidden = false;
+    positionTooltip(event, target);
+  };
+
+  const hideTooltip = (event) => {
+    if (event.currentTarget.matches(":focus")) return;
+    tooltip.hidden = true;
+  };
+
+  targets.forEach((target) => {
+    target.addEventListener("mouseenter", showTooltip);
+    target.addEventListener("mousemove", (event) => positionTooltip(event, target));
+    target.addEventListener("mouseleave", hideTooltip);
+    target.addEventListener("focus", showTooltip);
+    target.addEventListener("blur", () => {
+      tooltip.hidden = true;
+    });
+  });
+}
+
+function downloadMutationMapperSvg(geneSymbol) {
+  const svg = document.querySelector("#mutation-mapper-svg");
+  if (!svg) return;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const style = document.createElement("style");
+  style.textContent = `
+    text { font-family: "Times New Roman", Times, serif; }
+    .cbio-axis line, .cbio-y-axis line { stroke: #84918f; stroke-width: 1.2; }
+    .cbio-axis text, .cbio-y-axis text { fill: #4d5b59; font-size: 14px; }
+    .cbio-lollipop line { stroke: #9da8a5; stroke-width: 1.3; }
+    .cbio-lollipop circle { stroke: #fff; stroke-width: 2; }
+    .cbio-lollipop text { fill: #21302d; font-size: 13px; text-anchor: middle; }
+    .protein-backbone { fill: #b9bfbc; }
+    .cbio-domain text { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; }
+  `;
+  clone.prepend(style);
+  const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${geneSymbol}-mutation-mapper.svg`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 function renderMutationMapper() {
@@ -1325,6 +1565,9 @@ function renderMutationMapper() {
 
   const proteinLength = detail.protein?.proteinLength || Math.max(...mutations.map((item) => item.aminoAcidPosition || 0), 200);
   const plotData = buildCbioportalLollipopData(detail, mutations, proteinLength);
+  const yControlMax = Math.max(6, Math.ceil(plotData.yMax * 1.5));
+  if (!state.mutationMapperYMax) state.mutationMapperYMax = plotData.yMax;
+  state.mutationMapperYMax = Math.min(Math.max(1, state.mutationMapperYMax), yControlMax);
   const listedMutations = [...mutations]
     .sort((a, b) => (b.sampleCount || 0) - (a.sampleCount || 0))
     .slice(0, 18);
@@ -1335,30 +1578,66 @@ function renderMutationMapper() {
       <span>${formatNumber(plotData.lollipops.length)} positioned / ${formatNumber(mutations.length)} records</span>
     </div>
     <div class="mutation-mapper-tools">
-      <label>
+      <label class="mutation-annotation-control">
+        <span>Annotation track</span>
+        <select id="mutation-mapper-annotation">
+          <option value="domains" ${state.mutationMapperAnnotation === "domains" ? "selected" : ""}>Protein domains</option>
+          <option value="sequence" ${state.mutationMapperAnnotation === "sequence" ? "selected" : ""}>Protein sequence only</option>
+        </select>
+      </label>
+      <label class="mutation-y-control">
+        <span>Y-axis max</span>
+        <input id="mutation-mapper-y-max" type="range" min="1" max="${yControlMax}" step="1" value="${state.mutationMapperYMax}" />
+        <output id="mutation-mapper-y-output">${formatNumber(state.mutationMapperYMax)}</output>
+      </label>
+      <label class="mutation-zoom-control">
         <span>Zoom</span>
         <input id="mutation-mapper-zoom" type="range" min="1" max="4" step="0.5" value="${state.mutationMapperZoom}" />
       </label>
-      <span>Drag the horizontal scrollbar to inspect long proteins.</span>
+      <div class="mutation-mapper-actions">
+        <button id="mutation-mapper-legend-toggle" type="button" aria-pressed="${state.mutationMapperShowLegend}">
+          ${state.mutationMapperShowLegend ? "Hide" : "Show"} legend
+        </button>
+        <button id="mutation-mapper-download" type="button">Download SVG</button>
+      </div>
     </div>
     ${renderCbioportalLollipopPlot(plotData)}
-    <ul>
-      ${listedMutations
-        .map(
-          (mutation) => `<li>${escapeHtml(mutation.proteinChange)} - position ${mutation.aminoAcidPosition ? formatNumber(mutation.aminoAcidPosition) : "not available"} - ${formatNumber(mutation.sampleCount)} mutated samples - ${escapeHtml(mutation.variantClassification || mutation.mutationLabel)}</li>`
-        )
-        .join("")}
-    </ul>
-    <p>This local plot uses the open-source cBioPortal Mutation Mapper LollipopPlot input shape. It renders every protein-level mutation point for the selected gene; labels are limited to the selected and highest-count positions so the plot remains readable.</p>
+    <p class="mutation-mapper-help">Each circle marks a protein change; its height is the number of COAD tumor samples. Hover over or focus a circle for details. Drag the horizontal scrollbar when the protein is zoomed.</p>
+    <details class="mutation-mapper-list">
+      <summary>View the ${formatNumber(listedMutations.length)} most frequent mutation locations</summary>
+      <ul>
+        ${listedMutations
+          .map(
+            (mutation) => `<li><code>${escapeHtml(mutation.proteinChange)}</code> · position ${mutation.aminoAcidPosition ? formatNumber(mutation.aminoAcidPosition) : "not available"} · ${formatNumber(mutation.sampleCount)} samples · ${escapeHtml(mutation.variantClassification || mutation.mutationLabel)}</li>`
+          )
+          .join("")}
+      </ul>
+    </details>
     <div class="external-actions">
       ${mutationExternalLink(mutations[0].cbioportalMutationMapperUrl, "Open cBioPortal Mutation Mapper")}
     </div>
   `;
 
+  document.querySelector("#mutation-mapper-annotation")?.addEventListener("change", (event) => {
+    state.mutationMapperAnnotation = event.target.value;
+    renderMutationMapper();
+  });
+  document.querySelector("#mutation-mapper-y-max")?.addEventListener("input", (event) => {
+    state.mutationMapperYMax = Number(event.target.value) || plotData.yMax;
+    renderMutationMapper();
+  });
   document.querySelector("#mutation-mapper-zoom")?.addEventListener("input", (event) => {
     state.mutationMapperZoom = Number(event.target.value) || 1;
     renderMutationMapper();
   });
+  document.querySelector("#mutation-mapper-legend-toggle")?.addEventListener("click", () => {
+    state.mutationMapperShowLegend = !state.mutationMapperShowLegend;
+    renderMutationMapper();
+  });
+  document.querySelector("#mutation-mapper-download")?.addEventListener("click", () => {
+    downloadMutationMapperSvg(detail.geneSymbol);
+  });
+  initializeMutationMapperTooltips();
 }
 
 function populateMutationFilters() {
@@ -1495,6 +1774,7 @@ async function selectMutationDetail(mutationDetailId) {
   state.selectedGene = detail.geneSymbol;
   state.mutationHotspots = [];
   state.mutationLocationMutations = [];
+  state.mutationMapperYMax = null;
   renderMutationTable();
   renderMutationStructure();
   if (els.mutationMapperCard) {

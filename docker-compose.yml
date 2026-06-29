@@ -25,7 +25,7 @@ services:
       NODE_APP_DIR: /workspace/node-app
       NODE_PORT: 3000
       NODE_START_COMMAND: npm start
-      CONTACT_EMAIL: cookiekat987@gmail.com
+      CONTACT_EMAIL: nancy.fu.2027@this.edu.cn
       PGHOST: bio-postgres
       PGPORT: 5432
       PGDATABASE: bio
